@@ -3,7 +3,7 @@ import gzip
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
-from src.model import FullyConnected
+from src.model import SynergyNetwork
 
 n_datapoints = 1000
 
