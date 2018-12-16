@@ -11,7 +11,7 @@ class Dataset(torch.utils.data.Dataset):
         self.y = y
 
     def __len__(self):
-        return len(X)
+        return len(self.X)
 
     def __getitem__(self, idx):
         sample = {'x': self.X[idx], 'y': self.y[idx]}
