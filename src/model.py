@@ -12,10 +12,10 @@ class SynergyNetwork(nn.Module):
 
         super(SynergyNetwork, self).__init__()
 
-        n_hidden = (2048, 1024)
+        n_hidden = (8182, 4096)
 
-        self.layer1 = FCLayer(input_dim, n_hidden[0])
-        self.layer2 = FCLayer(n_hidden[0], n_hidden[1])
+        self.layer1 = FCLayer(input_dim, n_hidden[0],dropout=0.2)
+        self.layer2 = FCLayer(n_hidden[0], n_hidden[1], dropout=0.5)
         self.outlayer = nn.Linear(n_hidden[1], 1)
 
 
