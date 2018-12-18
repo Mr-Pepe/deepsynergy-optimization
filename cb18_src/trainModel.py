@@ -43,8 +43,8 @@ config = {
     'lr_decay_interval': 1500,             # Number of epochs after which to reduce the learning rate
 
     ## Logging ##
-    'log_interval': 1,           # Number of mini-batches after which to print training loss
-    'save_interval': 100,         # Number of epochs after which to save model and solver
+    'log_interval': 20,           # Number of mini-batches after which to print training loss
+    'save_interval': 200,         # Number of epochs after which to save model and solver
     'save_path': '../saves'
 }
 
