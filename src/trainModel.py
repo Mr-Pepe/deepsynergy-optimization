@@ -15,7 +15,7 @@ from src.utils import Dataset
 
 config = {
 
-    'input_features_path':        '../datasets/x.p',
+    'input_features_path':        '../datasets/x_norm_tanh.p',
     'synergy_scores_path': '../datasets/synergy_scores.p',
 
     'continue_training':   False,      # Specify whether to continue training with an existing model and solver
@@ -62,16 +62,16 @@ if config['do_overfitting']:
     val_data_sampler    = SequentialSampler(range(config['num_train_overfit']))
 
 else:
-    if config['num_train_regular']+config['num_val_regular'] > len(X):
+    if config['num_train_regular']+config['num_val_regular'] > len(dataset):
         raise Exception('Trying to use more samples for training and validation than are available.')
     else:
         train_data_sampler  = SubsetRandomSampler(range(config['num_train_regular']))
-        val_data_sampler    = SubsetRandomSampler(range(config['num_train_regular'], config['num_train_regular']+config['num_val_regular']))
+        val_data_sampler    = SubsetRandomSampler(range(config['num_val_regular']))
 
+        [train_set, val_set] = torch.utils.data.random_split(dataset, [config['num_train_regular'], config['num_val_regular']])
 
-
-train_data_loader   = torch.utils.data.DataLoader(dataset=dataset, batch_size=config['batch_size'], num_workers=config['num_workers'], sampler=train_data_sampler)
-val_data_loader     = torch.utils.data.DataLoader(dataset=dataset, batch_size=config['batch_size'], num_workers=config['num_workers'], sampler=val_data_sampler)
+        train_data_loader   = torch.utils.data.DataLoader(dataset=train_set, batch_size=config['batch_size'], num_workers=config['num_workers'], sampler=train_data_sampler)
+        val_data_loader     = torch.utils.data.DataLoader(dataset=val_set, batch_size=config['batch_size'], num_workers=config['num_workers'], sampler=val_data_sampler)
 
 
 if config['continue_training']:
@@ -88,7 +88,7 @@ solver.train(lr_decay=config['lr_decay'],
              start_epoch=start_epoch,
              model=model,
              train_loader=train_data_loader,
-             val_loader=train_data_loader,
+             val_loader=val_data_loader,
              num_epochs=config['num_epochs'],
              log_after_iters=config['log_interval'],
              save_after_epochs=config['save_interval'],
