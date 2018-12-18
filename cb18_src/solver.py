@@ -5,6 +5,7 @@ import torch
 from torch.autograd import Variable
 import os
 import pickle
+import time
 
 class Solver(object):
     default_adam_args = {"lr": 1e-4,
@@ -35,6 +36,8 @@ class Solver(object):
               lr_decay=1, lr_decay_interval=1, save_path='../saves/train', ):
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print("Using device: " + device.type)
+
         model.to(device)
 
         optim = self.optim(model.parameters(), **self.optim_args)
@@ -56,10 +59,11 @@ class Solver(object):
         i_iter = 0
 
 
-        print('START TRAIN.')
+        print('START TRAINING.')
 
         # Do the training here
         for i_epoch in range(num_epochs):
+            t_start_epoch = time.time()
 
             i_epoch += start_epoch
 
@@ -67,6 +71,8 @@ class Solver(object):
             model.train()
 
             for i_iter_in_epoch, batch in enumerate(train_loader):
+                t_start_iter = time.time()
+
                 i_iter += 1
 
                 X = batch['x']
@@ -93,7 +99,7 @@ class Solver(object):
                 loss_avg = 99/100*loss_avg + 1/100*loss.item()
 
                 if i_iter%log_after_iters == 0:
-                    print("Iteration " + str(i_iter) + "/" + str(n_iters) + "   Train loss: " + str(loss.item()) + "   Avg: " + str(loss_avg))
+                    print("Iteration " + str(i_iter) + "/" + str(n_iters) + "   Train loss: " + "{0:.3f}".format(loss.item()) + "   Avg: " + "{0:.3f}".format(loss_avg) + " - " + str(int((time.time()-t_start_iter)*1000)) + "ms")
 
             # Save model and solver
             if (i_epoch+1)%save_after_epochs == 0:
@@ -102,14 +108,14 @@ class Solver(object):
                 model.to(device)
 
             # Validate model
-            print("Validate model after epoch " + str(i_epoch+1))
+            # print("Validate model after epoch " + str(i_epoch+1))
 
             # Set model to evaluation mode
             model.eval()
 
 
             num_val_batches = 0
-
+            val_loss = 0
 
             for i, batch in enumerate(val_loader):
                 num_val_batches += 1
@@ -128,9 +134,12 @@ class Solver(object):
                 criterion = torch.nn.MSELoss()
                 loss = criterion(pred, y)
 
-                self.val_loss_history.append(loss.item())
+                val_loss += loss.item()
 
-                print("Epoch " + str(i_epoch) + '/' + str(num_epochs) + '   Val loss: '+ str(loss.item()))
+            val_loss /= num_val_batches
+            self.val_loss_history.append(val_loss)
+
+            print("Epoch " + str(i_epoch) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(loss.item()) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
 
             # Update learning rate
             if i_epoch%lr_decay_interval == 0:

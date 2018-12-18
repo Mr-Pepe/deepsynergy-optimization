@@ -6,11 +6,11 @@ from PIL import Image
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-from src.model import SynergyNetwork
-from src.solver import Solver
+from cb18_src.model import SynergyNetwork
+from cb18_src.solver import Solver
 from torch.utils.data.sampler import SequentialSampler, SubsetRandomSampler
 import pickle
-from src.utils import Dataset
+from cb18_src.utils import Dataset
 
 
 config = {
@@ -23,11 +23,12 @@ config = {
     'model_path': '',
     'solver_path': '',
 
-    'do_overfitting': True,            # Set overfit or regular training
+    'do_overfitting':       False,            # Set overfit or regular training
 
-    'num_train_regular':    1000,     # Number of training samples for regular training
-    'num_val_regular':      1000,       # Number of validation samples for regular training
-    'num_train_overfit':    10,       # Number of training samples for overfitting test runs
+    #46104
+    'num_train_regular':    40000,     # Number of training samples for regular training
+    'num_val_regular':      6104,       # Number of validation samples for regular training
+    'num_train_overfit':    256,       # Number of training samples for overfitting test runs
 
     'num_workers': 0,                   # Number of workers for data loading
 
@@ -35,15 +36,15 @@ config = {
 
     ## Hyperparameters ##
     'num_epochs': 1000,                  # Number of epochs to train
-    'batch_size': 100,
-    'learning_rate': 1e-3,
+    'batch_size': 64,
+    'learning_rate': 1e-5,
     'betas': (0.9, 0.999),              # Beta coefficients for ADAM
     'lr_decay': 1,                      # Learning rate decay -> lr *= lr_decay
     'lr_decay_interval': 1500,             # Number of epochs after which to reduce the learning rate
 
     ## Logging ##
     'log_interval': 1,           # Number of mini-batches after which to print training loss
-    'save_interval': 1500,         # Number of epochs after which to save model and solver
+    'save_interval': 100,         # Number of epochs after which to save model and solver
     'save_path': '../saves'
 }
 
