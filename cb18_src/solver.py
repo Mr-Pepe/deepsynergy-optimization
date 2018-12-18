@@ -95,8 +95,10 @@ class Solver(object):
                 optim.step()
 
                 # Save loss to history
+                smooth_window = 15
+
                 self.train_loss_history.append(loss.item())
-                loss_avg = 99/100*loss_avg + 1/100*loss.item()
+                loss_avg = (smooth_window-1)/smooth_window*loss_avg + 1/smooth_window*loss.item()
 
                 if i_iter%log_after_iters == 0:
                     print("Iteration " + str(i_iter) + "/" + str(n_iters) + "   Train loss: " + "{0:.3f}".format(loss.item()) + "   Avg: " + "{0:.3f}".format(loss_avg) + " - " + str(int((time.time()-t_start_iter)*1000)) + "ms")
