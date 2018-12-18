@@ -87,7 +87,7 @@ class Solver(object):
 
                 # Calculate loss
                 criterion = torch.nn.MSELoss()
-                loss = criterion(pred, y)
+                loss = criterion(pred[:,0], y)
 
                 # Packpropagate and update weights
                 model.zero_grad()
@@ -132,7 +132,7 @@ class Solver(object):
 
                 # Calculate loss
                 criterion = torch.nn.MSELoss()
-                loss = criterion(pred, y)
+                loss = criterion(pred[:,0], y)
 
                 val_loss += loss.item()
 
