@@ -1,14 +1,13 @@
 """ClassificationCNN"""
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
+import cb18.utils as utils
 
 
 class SynergyNetwork(nn.Module):
     
 
-    def __init__(self, input_dim=12758):
+    def __init__(self, means=None, std_devs=None, input_dim=12758):
 
         super(SynergyNetwork, self).__init__()
 
@@ -17,6 +16,12 @@ class SynergyNetwork(nn.Module):
         self.layer1 = FCLayer(input_dim, n_hidden[0],dropout=0.2)
         self.layer2 = FCLayer(n_hidden[0], n_hidden[1], dropout=0.5)
         self.outlayer = nn.Linear(n_hidden[1], 1)
+
+        if means is None or std_devs is None:
+            raise("Need means and std devs for model initialization")
+        else:
+            self.means = means
+            self.std_devs = std_devs
 
 
     def forward(self, input):

@@ -1,8 +1,5 @@
-from random import shuffle
-import numpy as np
 import datetime
 import torch
-from torch.autograd import Variable
 import os
 import pickle
 import time
