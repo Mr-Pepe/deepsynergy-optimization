@@ -20,24 +20,6 @@ class Dataset(torch.utils.data.Dataset):
         return sample
 
 
-def eval_model(model, images):
-    plt.interactive(False)
-    for image in images:
-        to_pil = transforms.ToPILImage()
-
-        plt.subplot(1,3,1)
-        plt.imshow(to_pil(image))
-
-        restored = model(torch.unsqueeze(image, 0))
-
-        plt.subplot(1,3,2)
-        plt.imshow(to_pil(restored[0]))
-
-        plt.subplot(1, 3, 3)
-        plt.imshow(to_pil(restored[0]-image))
-        plt.show(block=True)
-
-
 def show_solver_history(path):
     solver = pickle.load(open(path, 'rb'))
 
