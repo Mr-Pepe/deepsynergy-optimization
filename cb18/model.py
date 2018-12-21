@@ -34,8 +34,6 @@ class SynergyNetwork(nn.Module):
             input, _, _ = utils.normalize(input, means=self.means, std_devs=self.std_devs, tanh=self.tanh)
             input = torch.matmul(input, self.V)
 
-        print("Mean: " + str(input.mean().item()))
-
         out = self.in_norm(input)
         out = self.layer1(out)
         out = self.layer2(out)
