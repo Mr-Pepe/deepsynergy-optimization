@@ -31,7 +31,7 @@ class SynergyNetwork(nn.Module):
     def forward(self, input):
 
         if self.training is False:
-            input, _, _ = utils.normalize(input, means=self.means, std_devs=self.std_devs, tanh=self.tanh)
+            input, _, _ = utils.normalize(input.cpu(), means=self.means, std_devs=self.std_devs, tanh=self.tanh)
             input = torch.matmul(input, self.V)
 
         out = self.in_norm(input)
