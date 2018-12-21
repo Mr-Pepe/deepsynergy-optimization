@@ -42,7 +42,7 @@ def show_solver_history(path):
     plt.show()
 
 
-def normalize(X, means=None, std_devs=None, mask=None, tanh=False, reduce=False):
+def normalize(X, means=None, std_devs=None, tanh=False):
     if means is None:
         print("  Calculating means ... ", end='')
         means = X.mean(dim=0)
@@ -52,26 +52,14 @@ def normalize(X, means=None, std_devs=None, mask=None, tanh=False, reduce=False)
         std_devs = X.std(dim=0)
         print("Done.")
 
-
-
-    if reduce is False:
-        mask = std_devs != 0
-        X = X - means
-        X[:, mask] = X[:, mask] / std_devs[mask]
-    else:
-        if mask is None:
-            mask = std_devs != 0
-            means = means[mask]
-            std_devs = std_devs[mask]
-
-        X = X[:,mask]
-        X = X - means
-        X = X / std_devs
+    mask = std_devs != 0
+    X = X - means
+    X[:, mask] = X[:, mask] / std_devs[mask]
 
     if tanh is True:
         X = X.tanh()
 
-    return X, means, std_devs, mask
+    return X, means, std_devs
 
 
 def mse(A,B):

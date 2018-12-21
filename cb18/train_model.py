@@ -25,6 +25,9 @@ config = {
 
     'num_workers': 0,                  # Number of workers for data loading
 
+    'num_eigenvectors': 80,
+    'norm_tanh': False,
+
     'mode': 'vanilla_deep_synergy',
 
     ## Hyperparameters ##
@@ -45,21 +48,37 @@ print("Loading train dataset ... ", end='')
 with open(config['train_data_path'], 'rb') as train_data_file:
     X, y = pickle.load(train_data_file)
     dataset = Dataset(X, y)
-    print("Done.")
+print("Done.")
 
+print("Loading V matrix ...", end='')
+with open("../datasets/svd.p", "rb") as file:
+    _,_,V = pickle.load(file)
+    V = V[:,:config['num_eigenvectors']]
+print("Done.")
 
 print("Splitting dataset ... ", end='')
 num_train = int(len(dataset)*0.8)
 num_val = len(dataset)-num_train
 torch.manual_seed(123)
 [train_set, val_set] = torch.utils.data.random_split(dataset, (num_train, num_val))
+
+X_train = X[train_set.indices]
+y_train = y[train_set.indices]
+X_val   = X[val_set.indices]
+y_val   = y[val_set.indices]
 print("Done.")
 
-
-print("Normalizing dataset ... ", end='')
-X[train_set.indices], means, std_devs = utils.normalize(X[train_set.indices], tanh=True)
-X[val_set.indices], _, _ = utils.normalize(X[val_set.indices], means=means, std_devs=std_devs, tanh=True)
+print("Normalizing dataset ... ")
+X_train, means, std_devs = utils.normalize(X_train, tanh=config['norm_tanh'])
+# X[val_set.indices], _, _ = utils.normalize(X[val_set.indices], means=means, std_devs=std_devs, tanh=False)
 print("Done.")
+
+print("Projecting train data ... ", end='')
+X_train = torch.matmul(X_train, V)
+print("Done. ")
+
+train_set = Dataset(X_train, y_train)
+val_set   = Dataset(X_val, y_val)
 
 train_data_sampler  = SubsetRandomSampler(range(len(train_set)))
 val_data_sampler    = SubsetRandomSampler(range(len(val_set)))
@@ -68,7 +87,7 @@ train_data_loader   = torch.utils.data.DataLoader(dataset=train_set, batch_size=
 val_data_loader     = torch.utils.data.DataLoader(dataset=val_set, batch_size=config['batch_size'], num_workers=config['num_workers'], sampler=val_data_sampler)
 
 
-model = SynergyNetwork(means, std_devs)
+model = SynergyNetwork(X_train.shape[1], means, std_devs, config['norm_tanh'], V)
 solver = Solver(optim_args={"lr": config['learning_rate'],
                             "betas": config['betas']})
 start_epoch = 0

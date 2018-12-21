@@ -23,7 +23,7 @@ means = model.means
 std_devs = model.std_devs
 
 print("Normalizing dataset ... ", end='')
-X, _, _, _ = utils.normalize(X, means=means, std_devs=std_devs, tanh=True)
+X, _, _ = utils.normalize(X, means=means, std_devs=std_devs, tanh=True)
 print("Done.")
 
 print("Evaluating model ... ", end='')
