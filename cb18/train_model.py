@@ -12,28 +12,28 @@ config = {
     'test_data_path': '../datasets/test_data.p',
 
     'continue_training':   False,      # Specify whether to continue training with an existing model and solver
-    'start_epoch':            100,             # Specify the number of training epochs of the existing model
+    'start_epoch':            100,     # Specify the number of training epochs of the existing model
     'model_path': '',
     'solver_path': '',
 
-    'do_overfitting':       False,            # Set overfit or regular training
+    'do_overfitting':       False,     # Set overfit or regular training
 
     #46104
     'num_train_regular':    40000,     # Number of training samples for regular training
-    'num_val_regular':      6104,       # Number of validation samples for regular training
+    'num_val_regular':      6104,      # Number of validation samples for regular training
     'num_train_overfit':    256,       # Number of training samples for overfitting test runs
 
-    'num_workers': 0,                   # Number of workers for data loading
+    'num_workers': 0,                  # Number of workers for data loading
 
     'mode': 'vanilla_deep_synergy',
 
     ## Hyperparameters ##
-    'num_epochs': 1000,                  # Number of epochs to train
+    'num_epochs': 1000,                # Number of epochs to train
     'batch_size': 64,
     'learning_rate': 1e-5,
-    'betas': (0.9, 0.999),              # Beta coefficients for ADAM
-    'lr_decay': 1,                      # Learning rate decay -> lr *= lr_decay
-    'lr_decay_interval': 1500,             # Number of epochs after which to reduce the learning rate
+    'betas': (0.9, 0.999),             # Beta coefficients for ADAM
+    'lr_decay': 1,                     # Learning rate decay -> lr *= lr_decay
+    'lr_decay_interval': 1500,         # Number of epochs after which to reduce the learning rate
 
     ## Logging ##
     'log_interval': 20,           # Number of mini-batches after which to print training loss
@@ -42,12 +42,11 @@ config = {
 }
 
 print("Loading train dataset ... ", end='')
-train_data_file = open(config['train_data_path'], 'rb')
-X, y = pickle.load(train_data_file)
-train_data_file.close()
+with open(config['train_data_path'], 'rb') as train_data_file:
+    X, y = pickle.load(train_data_file)
+    dataset = Dataset(X, y)
+    print("Done.")
 
-dataset = Dataset(X, y)
-print("Done.")
 
 print("Splitting dataset ... ", end='')
 num_train = int(len(dataset)*0.8)
@@ -56,9 +55,10 @@ torch.manual_seed(123)
 [train_set, val_set] = torch.utils.data.random_split(dataset, (num_train, num_val))
 print("Done.")
 
+
 print("Normalizing dataset ... ", end='')
-X[train_set.indices], means, std_devs = utils.normalize(X[train_set.indices])
-X[val_set.indices], _, _ = utils.normalize(X[val_set.indices], means=means, std_devs=std_devs)
+X[train_set.indices], means, std_devs = utils.normalize(X[train_set.indices], tanh=True)
+X[val_set.indices], _, _ = utils.normalize(X[val_set.indices], means=means, std_devs=std_devs, tanh=True)
 print("Done.")
 
 train_data_sampler  = SubsetRandomSampler(range(len(train_set)))
