@@ -1,9 +1,10 @@
 import cb18.utils as utils
 import cb18.model
 import pickle
+import torch
 
 test_data_path  = "../datasets/test_data.p"
-model_path      = ''
+model_path      = '../saves/train20181220202111/model1000'
 
 
 # Normalize test data according to model means and std_devs
@@ -16,17 +17,23 @@ dataset = utils.Dataset(X, y)
 print("Done.")
 
 print("Loading model ... ", end='')
-model_file = open(model_path, 'rb')
-model = pickle.load(model_file)
-model_file.close()
+model = torch.load(model_path)
 
 means = model.means
 std_devs = model.std_devs
 
 print("Normalizing dataset ... ", end='')
-X, _, _ = utils.normalize(X, means=means, std_devs=std_devs)
+X, _, _, _ = utils.normalize(X, means=means, std_devs=std_devs, tanh=True)
 print("Done.")
 
-print("Evaluating model ...")
+print("Evaluating model ... ", end='')
 pred_scores = model(X)
-# MSE calculation here
+print("Done.")
+
+mse = pred_scores[:,0]-y
+mse = mse.pow(2)
+mse = mse.sum()/len(mse)
+
+print("Test score: " + str(mse.item()))
+
+
