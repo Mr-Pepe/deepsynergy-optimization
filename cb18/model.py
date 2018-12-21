@@ -32,7 +32,10 @@ class SynergyNetwork(nn.Module):
 
         if self.training is False:
             input, _, _ = utils.normalize(input.cpu(), means=self.means, std_devs=self.std_devs, tanh=self.tanh)
-            input = torch.matmul(input, self.V)
+            input = torch.matmul(input.cpu(), self.V)
+            
+            if self.is_cuda:
+                input.to(torch.device("cuda:0"))
 
         out = self.in_norm(input)
         out = self.layer1(out)
