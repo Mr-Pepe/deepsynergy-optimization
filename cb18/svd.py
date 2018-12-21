@@ -22,9 +22,9 @@ torch.manual_seed(123)
 [train_set, val_set] = torch.utils.data.random_split(X, (num_train, num_val))
 print("Done.")
 
-print("Doing SVD decomposition ... ", end='')
+print("Doing SVD decomposition ... ")
 X_train = X[train_set.indices]
-X_train, means, std_devs, _ = utils.normalize(X_train, tanh=False)
+X_train, means, std_devs = utils.normalize(X_train, tanh=False)
 
 U,S,V = torch.svd(X_train)
 print("Done.")
