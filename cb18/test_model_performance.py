@@ -4,7 +4,7 @@ import pickle
 import torch
 
 test_data_path  = "../datasets/test_data.p"
-model_path      = '../saves/train20181220202111/model1000'
+model_path      = '/home/felipe/Projects/cb18/saves/train20181222002126/model1000'
 
 
 # Normalize test data according to model means and std_devs
@@ -18,13 +18,7 @@ print("Done.")
 
 print("Loading model ... ", end='')
 model = torch.load(model_path)
-
-means = model.means
-std_devs = model.std_devs
-
-print("Normalizing dataset ... ", end='')
-X, _, _ = utils.normalize(X, means=means, std_devs=std_devs, tanh=True)
-print("Done.")
+model.eval()
 
 print("Evaluating model ... ", end='')
 pred_scores = model(X)
