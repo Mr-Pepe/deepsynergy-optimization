@@ -26,10 +26,10 @@ def show_solver_history(path):
     train_loss = np.array(solver.train_loss_history)
     val_loss = np.array(solver.val_loss_history)
 
-    f, (ax1, ax2) = plt.subplots(2,1)
+    f, (ax1, ax2, ax3) = plt.subplots(3,1)
 
     ax1.plot(train_loss)
-    ax1.plot(np.convolve(train_loss, np.ones((1000,)) / 1000, mode='valid'))
+    ax1.plot(np.convolve(train_loss, np.ones((460,)) / 460, mode='valid'))
     ax1.set_xlabel("Iterations")
     ax1.set_ylabel("Train loss")
 
@@ -38,6 +38,9 @@ def show_solver_history(path):
     ax2.set_xlabel("Epoch")
     ax2.set_ylabel("Validation loss")
 
+    ax3.plot(np.arange(0,len(val_loss))*460,val_loss)
+    ax3.plot(np.convolve(train_loss, np.ones((460,)) / 460, mode='valid'))
+    # ax3.plot(np.arange(0,len(val_loss))*460,np.convolve(val_loss, np.ones((15,)) / 15, mode='valid'))
 
     plt.show()
 
