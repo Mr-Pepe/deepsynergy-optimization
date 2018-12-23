@@ -8,6 +8,7 @@ import cb18.utils as utils
 import datetime
 import os
 import yaml
+import random
 
 config = {
     'train_data_path':  '../datasets/train_data.p',
@@ -18,11 +19,11 @@ config = {
     'patience': 50,
 
     ## Hyperparameters ##
-    'num_epochs':   3000,                # Number of epochs to train
-    'batch_size':   [64],
-    'n_hidden_1':   [8182],
-    'n_hidden_2':   [4096],
-    'learning_rate': [1e-5],
+    'num_epochs':   5000,                # Number of epochs to train
+    'batch_size':   [1, 64, 256, 1024],
+    'n_hidden_1':   [8182, 2048, 1024, 512],
+    'n_hidden_2':   [4096, 1024, 512],
+    'learning_rate': [1e-5, 1e-4, 1e-3],
     'batch_norm':   [False],
     'dropout':      [0.5],
     'betas': (0.9, 0.999),             # Beta coefficients for ADAM
@@ -74,7 +75,14 @@ val_set   = Dataset(X_val, y_val)
 train_data_sampler  = SubsetRandomSampler(range(len(train_set)))
 val_data_sampler    = SubsetRandomSampler(range(len(val_set)))
 
-
+random.shuffle(config['n_hidden_1'])
+random.shuffle(config['n_hidden_2'])
+random.shuffle(config['batch_norm'])
+random.shuffle(config['dropout'])
+random.shuffle(config['batch_size'])
+random.shuffle(config['learning_rate'])
+random.shuffle(config['lr_decay'])
+random.shuffle(config['lr_decay_interval'])
 
 for n_hidden_1 in config['n_hidden_1']:
     for n_hidden_2 in config['n_hidden_2']:
