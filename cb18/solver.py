@@ -49,7 +49,7 @@ class Solver(object):
         train_loss_avg = 0
         best_val_loss  = 0
         patience_counter = 0
-        stop_training = False
+        val_loss_avg = 0
 
 
 
@@ -94,10 +94,10 @@ class Solver(object):
                 optim.step()
 
                 # Save loss to history
-                smooth_window = 15
+                smooth_window_train = 15
 
                 self.train_loss_history.append(loss.item())
-                train_loss_avg = (smooth_window-1)/smooth_window*train_loss_avg + 1/smooth_window*loss.item()
+                train_loss_avg = (smooth_window_train-1)/smooth_window_train*train_loss_avg + 1/smooth_window_train*loss.item()
 
                 # if i_iter%log_after_iters == 0:
                 #     print("Iteration " + str(i_iter) + "/" + str(n_iters) + "   Train loss: " + "{0:.3f}".format(loss.item()) + "   Avg: " + "{0:.3f}".format(loss_avg) + " - " + str(int((time.time()-t_start_iter)*1000)) + "ms")
@@ -137,10 +137,16 @@ class Solver(object):
             val_loss /= num_val_batches
             self.val_loss_history.append(val_loss)
 
+            smooth_window_val = 10
+
+            self.train_loss_history.append(loss.item())
+            if val_loss_avg == 0:
+                val_loss_avg = val_loss
+            else:
+                val_loss_avg = (smooth_window_val - 1) / smooth_window_val * val_loss_avg + 1 / smooth_window_val * val_loss
 
 
-
-            print("Epoch " + str(i_epoch) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(loss.item()) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
+            print("Epoch " + str(i_epoch) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(loss.item()) + "   - Avg: " + str(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
 
             self.lr_history.append(self.lr)
 
@@ -153,8 +159,8 @@ class Solver(object):
 
             # Early stopping
             if patience is not None:
-                if best_val_loss == 0 or val_loss < best_val_loss:
-                    best_val_loss = val_loss
+                if best_val_loss == 0 or val_loss_avg < best_val_loss:
+                    best_val_loss = val_loss_avg
                     patience_counter = 0
                 else:
                     patience_counter += 1
