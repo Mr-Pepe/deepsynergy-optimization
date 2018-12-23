@@ -20,7 +20,7 @@ config = {
 
     ## Hyperparameters ##
     'num_epochs':   5000,                # Number of epochs to train
-    'batch_size':   [1, 64, 256, 1024],
+    'batch_size':   [2, 64, 256, 1024],
     'n_hidden_1':   [8182, 2048, 1024, 512],
     'n_hidden_2':   [4096, 1024, 512],
     'learning_rate': [1e-5, 1e-4, 1e-3],
@@ -89,7 +89,7 @@ for n_hidden_1 in config['n_hidden_1']:
         for batch_norm in config['batch_norm']:
             for dropout in config['dropout']:
                 for batch_size in config['batch_size']:
-                    for lr in config['learning_rate']:
+                    for learning_rate in config['learning_rate']:
                         for lr_decay in config['lr_decay']:
                             for lr_decay_interval in config['lr_decay_interval']:
 
@@ -99,8 +99,9 @@ for n_hidden_1 in config['n_hidden_1']:
                                 val_data_loader = torch.utils.data.DataLoader(dataset=val_set, batch_size=batch_size,
                                                                               sampler=val_data_sampler)
 
-                                model = SynergyNetwork([n_hidden_1, n_hidden_2], X_train.shape[1], batch_norm, dropout, means, std_devs, config['norm_tanh'], V)
-                                solver = Solver(optim_args={"lr": lr,
+                                model = SynergyNetwork([n_hidden_1, n_hidden_2], X_train.shape[1], batch_norm, dropout,
+                                                       means, std_devs, config['norm_tanh'], V)
+                                solver = Solver(optim_args={"lr": learning_rate,
                                                             "betas": config['betas']})
                                 start_epoch = 0
 
@@ -109,8 +110,14 @@ for n_hidden_1 in config['n_hidden_1']:
                                 os.makedirs(save_path)
 
                                 with open(os.path.join(save_path, 'config.txt'), 'w') as file:
-                                    yaml.dump(config,file)
-                                    print(yaml.dump(config))
+                                    print(yaml.dump(
+                                        {'n_hidden_1':n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
+                                               'dropout': dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
+                                               'lr_decay': lr_decay, 'lr_decay_interval': lr_decay_interval}))
+                                    yaml.dump({'n_hidden_1':n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
+                                               'dropout': dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
+                                               'lr_decay': lr_decay, 'lr_decay_interval': lr_decay_interval},file)
+
 
                                 solver.train(lr_decay=lr_decay,
                                              start_epoch=start_epoch,
