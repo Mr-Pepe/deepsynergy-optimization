@@ -28,9 +28,10 @@ class Solver(object):
         """
         self.train_loss_history = []
         self.val_loss_history = []
+        self.lr_history = []
 
     def train(self, model, train_loader, val_loader, num_epochs=10, log_after_iters=1, save_after_epochs=1, start_epoch=0,
-              lr_decay=1, lr_decay_interval=1, save_path='../saves/train', ):
+              lr_decay=1, lr_decay_interval=1, save_path='../saves/train', patience=None):
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("Using device: " + device.type)
@@ -45,11 +46,12 @@ class Solver(object):
         iter_per_epoch = len(train_loader)
 
         # Exponentially filtered training loss
-        loss_avg = 0
+        train_loss_avg = 0
+        best_val_loss  = 0
+        patience_counter = 0
+        stop_training = False
 
-        # Generate save folder
-        save_path = os.path.join(save_path, 'train' + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-        os.makedirs(save_path)
+
 
         # Calculate the total number of minibatches for the training procedure
         n_iters = num_epochs*iter_per_epoch
@@ -95,10 +97,10 @@ class Solver(object):
                 smooth_window = 15
 
                 self.train_loss_history.append(loss.item())
-                loss_avg = (smooth_window-1)/smooth_window*loss_avg + 1/smooth_window*loss.item()
+                train_loss_avg = (smooth_window-1)/smooth_window*train_loss_avg + 1/smooth_window*loss.item()
 
-                if i_iter%log_after_iters == 0:
-                    print("Iteration " + str(i_iter) + "/" + str(n_iters) + "   Train loss: " + "{0:.3f}".format(loss.item()) + "   Avg: " + "{0:.3f}".format(loss_avg) + " - " + str(int((time.time()-t_start_iter)*1000)) + "ms")
+                # if i_iter%log_after_iters == 0:
+                #     print("Iteration " + str(i_iter) + "/" + str(n_iters) + "   Train loss: " + "{0:.3f}".format(loss.item()) + "   Avg: " + "{0:.3f}".format(loss_avg) + " - " + str(int((time.time()-t_start_iter)*1000)) + "ms")
 
             # Save model and solver
             if (i_epoch+1)%save_after_epochs == 0:
@@ -106,12 +108,9 @@ class Solver(object):
                 self.save(save_path + '/solver' + str(i_epoch + 1))
                 model.to(device)
 
-            # Validate model
-            # print("Validate model after epoch " + str(i_epoch+1))
 
             # Set model to evaluation mode
             model.eval()
-
 
             num_val_batches = 0
             val_loss = 0
@@ -138,7 +137,12 @@ class Solver(object):
             val_loss /= num_val_batches
             self.val_loss_history.append(val_loss)
 
+
+
+
             print("Epoch " + str(i_epoch) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(loss.item()) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
+
+            self.lr_history.append(self.lr)
 
             # Update learning rate
             if i_epoch%lr_decay_interval == 0:
@@ -146,6 +150,19 @@ class Solver(object):
                 print("Learning rate: " + str(self.lr))
                 for i, _ in enumerate(optim.param_groups):
                     optim.param_groups[i]['lr'] = self.lr
+
+            # Early stopping
+            if patience is not None:
+                if best_val_loss == 0 or val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    patience_counter = 0
+                else:
+                    patience_counter += 1
+
+                if patience_counter > patience:
+                    stop_training = True
+                    print("Early stopping after " + str(i_epoch) + " epochs.")
+                    break
 
         # Save model and solver after training
         model.save(save_path + '/model' + str(i_epoch + 1))

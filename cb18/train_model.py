@@ -5,55 +5,41 @@ from torch.utils.data.sampler import SequentialSampler, SubsetRandomSampler
 import pickle
 from cb18.utils import Dataset
 import cb18.utils as utils
-
+import datetime
+import os
+import yaml
 
 config = {
     'train_data_path':  '../datasets/train_data.p',
     'test_data_path': '../datasets/test_data.p',
 
-    'continue_training':   False,      # Specify whether to continue training with an existing model and solver
-    'start_epoch':            100,     # Specify the number of training epochs of the existing model
-    'model_path': '',
-    'solver_path': '',
-
-    'do_overfitting':       False,     # Set overfit or regular training
-
-    #46104
-    'num_train_regular':    40000,     # Number of training samples for regular training
-    'num_val_regular':      6104,      # Number of validation samples for regular training
-    'num_train_overfit':    256,       # Number of training samples for overfitting test runs
-
-    'num_workers': 0,                  # Number of workers for data loading
-
     'num_eigenvectors': 80,
     'norm_tanh': False,
-
-    'mode': 'vanilla_deep_synergy',
+    'patience': 50,
 
     ## Hyperparameters ##
-    'num_epochs': 1000,                # Number of epochs to train
-    'batch_size': 64,
-    'learning_rate': 1e-5,
+    'num_epochs':   3000,                # Number of epochs to train
+    'batch_size':   [64],
+    'n_hidden_1':   [8182],
+    'n_hidden_2':   [4096],
+    'learning_rate': [1e-5],
+    'batch_norm':   [False],
+    'dropout':      [0.5],
     'betas': (0.9, 0.999),             # Beta coefficients for ADAM
-    'lr_decay': 1,                     # Learning rate decay -> lr *= lr_decay
-    'lr_decay_interval': 1500,         # Number of epochs after which to reduce the learning rate
+    'lr_decay': [1],                     # Learning rate decay -> lr *= lr_decay
+    'lr_decay_interval': [1500],         # Number of epochs after which to reduce the learning rate
 
     ## Logging ##
-    'log_interval': 20,           # Number of mini-batches after which to print training loss
-    'save_interval': 200,         # Number of epochs after which to save model and solver
+    'log_interval': 1e15,           # Number of mini-batches after which to print training loss
+    'save_interval': 10000,         # Number of epochs after which to save model and solver
     'save_path': '../saves'
 }
+
 
 print("Loading train dataset ... ", end='')
 with open(config['train_data_path'], 'rb') as train_data_file:
     X, y = pickle.load(train_data_file)
     dataset = Dataset(X, y)
-print("Done.")
-
-print("Loading V matrix ...", end='')
-with open("../datasets/svd.p", "rb") as file:
-    _,_,V = pickle.load(file)
-    V = V[:,:config['num_eigenvectors']]
 print("Done.")
 
 print("Splitting dataset ... ", end='')
@@ -70,7 +56,12 @@ print("Done.")
 
 print("Normalizing dataset ... ")
 X_train, means, std_devs = utils.normalize(X_train, tanh=config['norm_tanh'])
-# X[val_set.indices], _, _ = utils.normalize(X[val_set.indices], means=means, std_devs=std_devs, tanh=False)
+print("Done.")
+
+print("Loading V matrix ...", end='')
+with open("../datasets/svd.p", "rb") as file:
+    _,_,V = pickle.load(file)
+    V = V[:,:config['num_eigenvectors']]
 print("Done.")
 
 print("Projecting train data ... ", end='')
@@ -83,23 +74,45 @@ val_set   = Dataset(X_val, y_val)
 train_data_sampler  = SubsetRandomSampler(range(len(train_set)))
 val_data_sampler    = SubsetRandomSampler(range(len(val_set)))
 
-train_data_loader   = torch.utils.data.DataLoader(dataset=train_set, batch_size=config['batch_size'], num_workers=config['num_workers'], sampler=train_data_sampler)
-val_data_loader     = torch.utils.data.DataLoader(dataset=val_set, batch_size=config['batch_size'], num_workers=config['num_workers'], sampler=val_data_sampler)
 
 
-model = SynergyNetwork(X_train.shape[1], means, std_devs, config['norm_tanh'], V)
-solver = Solver(optim_args={"lr": config['learning_rate'],
-                            "betas": config['betas']})
-start_epoch = 0
+for n_hidden_1 in config['n_hidden_1']:
+    for n_hidden_2 in config['n_hidden_2']:
+        for batch_norm in config['batch_norm']:
+            for dropout in config['dropout']:
+                for batch_size in config['batch_size']:
+                    for lr in config['learning_rate']:
+                        for lr_decay in config['lr_decay']:
+                            for lr_decay_interval in config['lr_decay_interval']:
 
-solver.train(lr_decay=config['lr_decay'],
-             start_epoch=start_epoch,
-             model=model,
-             train_loader=train_data_loader,
-             val_loader=val_data_loader,
-             num_epochs=config['num_epochs'],
-             log_after_iters=config['log_interval'],
-             save_after_epochs=config['save_interval'],
-             lr_decay_interval=config['lr_decay_interval'],
-             save_path=config['save_path']
-             )
+                                train_data_loader = torch.utils.data.DataLoader(dataset=train_set,
+                                                                                batch_size=batch_size,
+                                                                                sampler=train_data_sampler)
+                                val_data_loader = torch.utils.data.DataLoader(dataset=val_set, batch_size=batch_size,
+                                                                              sampler=val_data_sampler)
+
+                                model = SynergyNetwork([n_hidden_1, n_hidden_2], X_train.shape[1], batch_norm, dropout, means, std_devs, config['norm_tanh'], V)
+                                solver = Solver(optim_args={"lr": lr,
+                                                            "betas": config['betas']})
+                                start_epoch = 0
+
+                                # Generate save folder
+                                save_path = os.path.join(config['save_path'], 'train' + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+                                os.makedirs(save_path)
+
+                                with open(os.path.join(save_path, 'config.txt'), 'w') as file:
+                                    yaml.dump(config,file)
+                                    print(yaml.dump(config))
+
+                                solver.train(lr_decay=lr_decay,
+                                             start_epoch=start_epoch,
+                                             model=model,
+                                             train_loader=train_data_loader,
+                                             val_loader=val_data_loader,
+                                             num_epochs=config['num_epochs'],
+                                             log_after_iters=config['log_interval'],
+                                             save_after_epochs=config['save_interval'],
+                                             lr_decay_interval=lr_decay_interval,
+                                             save_path=save_path,
+                                             patience=config['patience']
+                                             )
