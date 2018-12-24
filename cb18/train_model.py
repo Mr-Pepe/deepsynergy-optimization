@@ -9,6 +9,10 @@ import datetime
 import os
 import yaml
 import random
+from bayes_opt import BayesianOptimization
+from bayes_opt import UtilityFunction
+from bayes_opt.observer import JSONLogger
+from bayes_opt.event import Events
 
 config = {
     'train_data_path':  '../datasets/train_data.p',
@@ -16,19 +20,15 @@ config = {
 
     'num_eigenvectors': 80,
     'norm_tanh': False,
-    'patience': 50,
+    'patience': 100,
+    'n_bayes_steps': 100,
 
     ## Hyperparameters ##
     'num_epochs':   5000,                # Number of epochs to train
-    'batch_size':   [2, 64, 256, 1024],
-    'n_hidden_1':   [8182, 2048, 1024, 512],
-    'n_hidden_2':   [4096, 1024, 512],
-    'learning_rate': [1e-5, 1e-4, 1e-3],
-    'batch_norm':   [False],
-    'dropout':      [0.5],
+    'batch_norm':   True,
     'betas': (0.9, 0.999),             # Beta coefficients for ADAM
-    'lr_decay': [1],                     # Learning rate decay -> lr *= lr_decay
-    'lr_decay_interval': [1500],         # Number of epochs after which to reduce the learning rate
+    'lr_decay': 1,                     # Learning rate decay -> lr *= lr_decay
+    'lr_decay_interval': 1500,         # Number of epochs after which to reduce the learning rate
 
     ## Logging ##
     'log_interval': 1e15,           # Number of mini-batches after which to print training loss
@@ -75,59 +75,86 @@ val_set   = Dataset(X_val, y_val)
 train_data_sampler  = SubsetRandomSampler(range(len(train_set)))
 val_data_sampler    = SubsetRandomSampler(range(len(val_set)))
 
-random.shuffle(config['n_hidden_1'])
-random.shuffle(config['n_hidden_2'])
-random.shuffle(config['batch_norm'])
-random.shuffle(config['dropout'])
-random.shuffle(config['batch_size'])
-random.shuffle(config['learning_rate'])
-random.shuffle(config['lr_decay'])
-random.shuffle(config['lr_decay_interval'])
 
-for n_hidden_1 in config['n_hidden_1']:
-    for n_hidden_2 in config['n_hidden_2']:
-        for batch_norm in config['batch_norm']:
-            for dropout in config['dropout']:
-                for batch_size in config['batch_size']:
-                    for learning_rate in config['learning_rate']:
-                        for lr_decay in config['lr_decay']:
-                            for lr_decay_interval in config['lr_decay_interval']:
+utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0)
 
-                                train_data_loader = torch.utils.data.DataLoader(dataset=train_set,
-                                                                                batch_size=batch_size,
-                                                                                sampler=train_data_sampler)
-                                val_data_loader = torch.utils.data.DataLoader(dataset=val_set, batch_size=batch_size,
-                                                                              sampler=val_data_sampler)
+optimizer = BayesianOptimization(
+    f='',
+    pbounds={'batch_size':   (0, 1),
+            'n_hidden_1':   (32, 4096),
+            'n_hidden_2':   (32, 4096),
+            'learning_rate': (1e-5, 1e-3),
+            'dropout':      (0, 1)},
+    verbose=0,
+    random_state=5
+)
 
-                                model = SynergyNetwork([n_hidden_1, n_hidden_2], X_train.shape[1], batch_norm, dropout,
-                                                       means, std_devs, config['norm_tanh'], V)
-                                solver = Solver(optim_args={"lr": learning_rate,
-                                                            "betas": config['betas']})
-                                start_epoch = 0
+# Generate save folder for the hyperparameter search
+save_path = os.path.join(config['save_path'], 'search' + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+os.makedirs(save_path)
 
-                                # Generate save folder
-                                save_path = os.path.join(config['save_path'], 'train' + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-                                os.makedirs(save_path)
+logger = JSONLogger(path=os.path.join(save_path, 'logs.json'))
+optimizer.subscribe(Events.OPTMIZATION_STEP, logger)
 
-                                with open(os.path.join(save_path, 'config.txt'), 'w') as file:
-                                    print(yaml.dump(
-                                        {'n_hidden_1':n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
-                                               'dropout': dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
-                                               'lr_decay': lr_decay, 'lr_decay_interval': lr_decay_interval}))
-                                    yaml.dump({'n_hidden_1':n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
-                                               'dropout': dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
-                                               'lr_decay': lr_decay, 'lr_decay_interval': lr_decay_interval},file)
+for i in range(config['n_bayes_steps']):
 
 
-                                solver.train(lr_decay=lr_decay,
-                                             start_epoch=start_epoch,
-                                             model=model,
-                                             train_loader=train_data_loader,
-                                             val_loader=val_data_loader,
-                                             num_epochs=config['num_epochs'],
-                                             log_after_iters=config['log_interval'],
-                                             save_after_epochs=config['save_interval'],
-                                             lr_decay_interval=lr_decay_interval,
-                                             save_path=save_path,
-                                             patience=config['patience']
-                                             )
+    next = optimizer.suggest(utility)
+
+    if next['batch_size'] > 0.5:
+        batch_size = 512
+    else:
+        batch_size = 64
+
+    n_hidden_1 = int(next['n_hidden_1'])
+    n_hidden_2 = int(next['n_hidden_2'])
+    learning_rate = next['learning_rate']
+    dropout = next['dropout']
+    batch_norm = config['batch_norm']
+    lr_decay = config['lr_decay']
+    lr_decay_interval = config['lr_decay_interval']
+
+    train_data_loader = torch.utils.data.DataLoader(dataset=train_set,
+                                                    batch_size=batch_size,
+                                                    sampler=train_data_sampler)
+    val_data_loader = torch.utils.data.DataLoader(dataset=val_set, batch_size=batch_size,
+                                                    sampler=val_data_sampler)
+
+
+    model = SynergyNetwork([n_hidden_1, n_hidden_2], X_train.shape[1], batch_norm, dropout,
+                           means, std_devs, config['norm_tanh'], V)
+    solver = Solver(optim_args={"lr": learning_rate,
+                                "betas": config['betas']})
+    start_epoch = 0
+
+    # Generate save folder
+    train_save_path = os.path.join(save_path, 'train' + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    os.makedirs(train_save_path)
+
+    with open(os.path.join(train_save_path, 'config.txt'), 'w') as file:
+        print(yaml.dump(
+            {'n_hidden_1':n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
+                   'dropout': dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
+                   'lr_decay': lr_decay, 'lr_decay_interval': lr_decay_interval}))
+        yaml.dump({'n_hidden_1':n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
+                   'dropout': dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
+                   'lr_decay': lr_decay, 'lr_decay_interval': lr_decay_interval},file)
+
+
+    val_loss = solver.train(lr_decay=lr_decay,
+                             start_epoch=start_epoch,
+                             model=model,
+                             train_loader=train_data_loader,
+                             val_loader=val_data_loader,
+                             num_epochs=config['num_epochs'],
+                             log_after_iters=config['log_interval'],
+                             save_after_epochs=config['save_interval'],
+                             lr_decay_interval=lr_decay_interval,
+                             save_path=train_save_path,
+                             patience=config['patience'],
+                             max_train_time_s = 7200
+                            )
+
+    optimizer.register(params=next, target=val_loss)
+    print(val_loss, next)
+    print(optimizer.max)
