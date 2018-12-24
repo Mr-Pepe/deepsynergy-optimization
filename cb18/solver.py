@@ -139,14 +139,13 @@ class Solver(object):
 
             smooth_window_val = 10
 
-            self.train_loss_history.append(loss.item())
             if val_loss_avg == 0:
                 val_loss_avg = val_loss
             else:
                 val_loss_avg = (smooth_window_val - 1) / smooth_window_val * val_loss_avg + 1 / smooth_window_val * val_loss
 
 
-            print("Epoch " + str(i_epoch+1) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(loss.item()) + "   - Avg: " + "{0:.3f}".format(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
+            print("Epoch " + str(i_epoch+1) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(val_loss) + "   - Avg: " + "{0:.3f}".format(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
 
             self.lr_history.append(self.lr)
 
