@@ -108,8 +108,8 @@ for i in range(config['n_bayes_steps']):
 
     n_hidden_1 = int(next['n_hidden_1'])
     n_hidden_2 = int(next['n_hidden_2'])
-    learning_rate = next['learning_rate']
-    dropout = next['dropout']
+    learning_rate = float(next['learning_rate'])
+    dropout = float(next['dropout'])
     batch_norm = config['batch_norm']
     lr_decay = config['lr_decay']
     lr_decay_interval = config['lr_decay_interval']
