@@ -20,7 +20,7 @@ config = {
 
     'num_eigenvectors': 80,
     'norm_tanh': False,
-    'patience': 100,
+    'patience': 50,
     'n_bayes_steps': 100,
 
     ## Hyperparameters ##
