@@ -167,12 +167,16 @@ class Solver(object):
                 if patience_counter > patience:
                     stop_training = True
                     print("Early stopping after " + str(i_epoch+1) + " epochs.")
+                    self.stop_reason = "Early stopping."
                     break
 
             # Stop if training time is over
             if time.time()-t_start_training > max_train_time_s:
                 print("Training time is over.")
+                self.stop_reason = "Training time over."
                 break
+
+        self.stop_reason = "Reached number of specified epochs."
 
         # Save model and solver after training
         model.save(save_path + '/model' + str(i_epoch + 1))
