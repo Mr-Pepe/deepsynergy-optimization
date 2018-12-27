@@ -155,6 +155,7 @@ for i in range(config['n_bayes_steps']):
                              max_train_time_s = 7200
                             )
 
-    optimizer.register(params=next, target=val_loss)
+    # Use negative val_loss because the optimizer maximizes
+    optimizer.register(params=next, target=-val_loss)
     print(val_loss, next)
     print(optimizer.max)
