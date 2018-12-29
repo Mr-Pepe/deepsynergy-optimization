@@ -6,7 +6,7 @@ import torch
 
 train_data_path   = "../datasets/train_data.p"
 fold_indices_path = "../datasets/fold_indices.p"
-svd_save_paths    = ["../datasets/svd%d.p" % i for i in range(4)]
+svd_load_paths    = ["../datasets/svd%d.p" % i for i in range(4)]
 
 print("Loading train dataset ... ", end='')
 with open(train_data_path, 'rb') as train_data_file:
@@ -24,7 +24,7 @@ for i in range(4):
     train_indices = fold_indices[i][0]
 
     print("Loading U, S, V for fold %d ... " % i, end='')
-    with open(svd_save_paths[i], 'rb') as file:
+    with open(svd_load_paths[i], 'rb') as file:
         U, S, V = pickle.load(file)
     print("Done.")
 
