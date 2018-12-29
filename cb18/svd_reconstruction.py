@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
+# Activate interactive mode
+plt.ion()
+
 config = {
     'train_data_path':  '../datasets/train_data.p',
 }
@@ -26,12 +29,21 @@ torch.manual_seed(123)
 print("Done.")
 
 X_train = X[train_set.indices]
-X_train, means, std_devs, _ = utils.normalize(X_train, tanh=False)
+X_train, means, std_devs = utils.normalize(X_train, tanh=False)
 
 var = torch.cumsum(S.pow(2)/S.pow(2).sum(), 0)
 
+
 for k in [1,10,50,80,106, 200, 500]:
-    print("Reconstructing using SVD with k=" + str(k), " ... ", end='')
+    print("Reconstructing with k=" + str(k), " ... ", end='')
     X_reconstructed = torch.matmul(torch.matmul(U[:,:k],torch.diag(S[:k])),torch.t(V[:,:k]))
 
     print("MSE: " + str(utils.mse(X_train, X_reconstructed)))
+
+
+plt.plot(var[:200].numpy())
+plt.xlabel("Ordered Eigenvectors")
+plt.ylabel("Covered Variance")
+plt.draw()
+plt.pause(0.05)
+
