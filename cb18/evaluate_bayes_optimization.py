@@ -6,7 +6,10 @@ import torch
 import pickle
 from cb18.utils import Dataset
 import numpy as np
+import matplotlib as mp
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import scipy.interpolate
 
 log_path = '../saves/search20181224210125/logs.json'
 train_data_path = '../datasets/train_data.p'
@@ -51,6 +54,25 @@ y_train = y[train_set.indices]
 X_val   = X[val_set.indices]
 y_val   = y[val_set.indices]
 print("Done.")
+
+# plt.figure()
+# plt.scatter(optimizer.space.params[:,0], optimizer.space.target)
+# plt.scatter(optimizer.space.params[:,1], optimizer.space.target)
+# plt.show()
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+n1 = optimizer.space.params[:,3]
+n1 = np.linspace(min(n1), max(n1))
+
+n2 = optimizer.space.params[:,4]
+n2 = np.linspace(min(n2), max(n2))
+n1m, n2m = np.meshgrid(n1, n2)
+
+t = scipy.interpolate.griddata(np.concatenate((np.expand_dims(optimizer.space.params[:,3],1), np.expand_dims(optimizer.space.params[:,4], 1)), axis=1), optimizer.space.target, (n1m, n2m),method='nearest')
+
+ax.plot_surface(n1m, n2m, t, cmap=mp.cm.coolwarm)
+plt.show()
 
 sorted_idx = optimizer.space.target.argsort()
 
