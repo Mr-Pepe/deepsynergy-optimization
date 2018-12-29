@@ -20,7 +20,7 @@ with open(fold_indices_path, 'rb') as file:
 print("Done.")
 
 # Calculate the SVD on the train data sets according to the folding indices
-for i in range(1,4):
+for i in range(1, 4):
     train_indices = fold_indices[i][0]
 
     # Use tensor cloning to copy the data from the original tensor
@@ -31,12 +31,12 @@ for i in range(1,4):
     X_train, means, std_devs = utils.normalize(X_train, tanh=False)
 
     print("Doing SVD decomposition for fold %d ... " % i, end='')
-    U,S,V = torch.svd(X_train)
+    U, S, V = torch.svd(X_train)
     print("Done.")
 
     del X_train
 
-    print("Saving U,S,V for fold %d ... " % i, end='')
+    print("Saving U, S, V for fold %d ... " % i, end='')
     with open(svd_save_paths[i], 'wb') as file:
-        pickle.dump((U,S,V), file)
+        pickle.dump((U, S, V), file)
     print("Done.")
