@@ -31,7 +31,7 @@ class Solver(object):
         self.lr_history = []
 
     def train(self, model, train_loader, val_loader, num_epochs=10, log_after_iters=1, save_after_epochs=1, start_epoch=0,
-              lr_decay=1, lr_decay_interval=1, save_path='../saves/train', patience=None):
+              lr_decay=1, lr_decay_interval=1, save_path='../saves/train', patience=None, max_train_time_s=300000):
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("Using device: " + device.type)
@@ -52,11 +52,11 @@ class Solver(object):
         val_loss_avg = 0
 
 
-
         # Calculate the total number of minibatches for the training procedure
         n_iters = num_epochs*iter_per_epoch
         i_iter = 0
 
+        t_start_training = time.time()
 
         print('START TRAINING.')
 
@@ -139,19 +139,18 @@ class Solver(object):
 
             smooth_window_val = 10
 
-            self.train_loss_history.append(loss.item())
             if val_loss_avg == 0:
                 val_loss_avg = val_loss
             else:
                 val_loss_avg = (smooth_window_val - 1) / smooth_window_val * val_loss_avg + 1 / smooth_window_val * val_loss
 
 
-            print("Epoch " + str(i_epoch) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(loss.item()) + "   - Avg: " + str(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
+            print("Epoch " + str(i_epoch+1) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(val_loss) + "   - Avg: " + "{0:.3f}".format(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
 
             self.lr_history.append(self.lr)
 
             # Update learning rate
-            if i_epoch%lr_decay_interval == 0:
+            if (i_epoch+1)%lr_decay_interval == 0:
                 self.lr *= lr_decay
                 print("Learning rate: " + str(self.lr))
                 for i, _ in enumerate(optim.param_groups):
@@ -167,14 +166,27 @@ class Solver(object):
 
                 if patience_counter > patience:
                     stop_training = True
-                    print("Early stopping after " + str(i_epoch) + " epochs.")
+                    print("Early stopping after " + str(i_epoch+1) + " epochs.")
+                    self.stop_reason = "Early stopping."
                     break
+
+            # Stop if training time is over
+            if time.time()-t_start_training > max_train_time_s:
+                print("Training time is over.")
+                self.stop_reason = "Training time over."
+                break
+
+        self.stop_reason = "Reached number of specified epochs."
+        self.training_time_s = time.time()-t_start_training
 
         # Save model and solver after training
         model.save(save_path + '/model' + str(i_epoch + 1))
         self.save(save_path + '/solver' + str(i_epoch + 1))
 
-        print('FINISH.')
+        print('FINISH.\n\n\n')
+
+        # Return last smoothened validation loss
+        return val_loss_avg
 
 
     def save(self, path):
