@@ -37,7 +37,7 @@ class Solver(object):
         if model_save_path is None: print("Model save path unspecified.")
         if history_save_path is None: print("History save path unspecified.")
 
-        device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
         print("Using device: " + device.type)
 
         model.to(device)

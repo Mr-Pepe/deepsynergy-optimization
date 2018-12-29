@@ -70,7 +70,7 @@ if use_bayesian is True:
                      'learning_rate'    : (1e-6, 1e-4),
                      'dropout'          : (0.05, 0.35),
                      'lr_decay'         : (0.5, 0.9),
-                     'lr_decay_interval': (10, 100)},
+                     'lr_decay_interval': (5, 50)},
             verbose=0,
             random_state=5
     )
