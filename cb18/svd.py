@@ -20,7 +20,7 @@ with open(fold_indices_path, 'rb') as file:
 print("Done.")
 
 # Calculate the SVD on the train data sets according to the folding indices
-for i in range(1, 4):
+for i in range(4):
     train_indices = fold_indices[i][0]
 
     # Use tensor cloning to copy the data from the original tensor
