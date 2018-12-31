@@ -30,10 +30,10 @@ with open(fold_indices_path, 'rb') as file:
 print("Done.")
 
 # Training parameters
-num_runs = 100             # How often to train models on the specified folds. Set this to 1 and use_bayesian to False to just
+num_runs = 1             # How often to train models on the specified folds. Set this to 1 and use_bayesian to False to just
                             # train on one specific hyperparameter configuration
-use_bayesian = True        # Whether to use Bayesian optimization to get hyperparameters
-max_train_time_s = 1800       # Maximum training time in seconds
+use_bayesian = False        # Whether to use Bayesian optimization to get hyperparameters
+max_train_time_s = 18000       # Maximum training time in seconds
 num_epochs = 5000           # Number of epochs to train each model
 folds = range(4)            # Which folds to use for training
 
@@ -44,10 +44,10 @@ batch_norm = True
 
 # Tunable hyperparameters
 batch_size = 64
-n_hidden_1 = 256
-n_hidden_2 = 1024
-learning_rate = 1e-5
-dropout = 0.5
+n_hidden_1 = 659
+n_hidden_2 = 4096
+learning_rate = 0.0008
+dropout = 0.3
 lr_decay = 1
 lr_decay_interval = 1000
 
