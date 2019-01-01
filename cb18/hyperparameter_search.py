@@ -14,18 +14,25 @@ from bayes_opt.observer import JSONLogger
 from bayes_opt.event import Events
 import numpy as np
 
+
 num_train_folds = 5
 num_eigenvectors = 80
 
-train_data_path     = ["../datasets/train_data_fold_%d.p" % i for i in range(5)]
-svd_load_paths      = [["../datasets/svd_test_fold_%d_train_fold_%d.p" % (i_test_fold, i_train_fold) for i_train_fold in range(num_train_folds)] for i_test_fold in range(5)]
+train_data_path = "../datasets/train_data_fold_0.p"
+svd_load_paths = ["../datasets/svd_test_fold_0_train_fold_%d.p" % i for i in range(num_train_folds)]
 
 save_path = '../saves'  # Used for saving model and solver
 
+print("Loading train dataset ... ", end='')
+with open(train_data_path, 'rb') as file:
+    X, y = pickle.load(file)
+print("Done.")
+
 # Training parameters
-num_runs = 100  # How often to train model
-max_train_time_s = 180000  # Maximum training time in seconds
-num_epochs = 5000  # Number of epochs to train each model
+num_runs = 100                # How often to train model
+max_train_time_s = 18000    # Maximum training time in seconds
+num_epochs = 5000           # Number of epochs to train each model
+folds = range(4)            # Which folds to use for training
 
 # Fixed hyperparameters
 patience = 50  # Used for early stopping if validation performance does not improve
@@ -35,30 +42,55 @@ log_interval = None
 save_interval = None
 
 # Generate save folder for the hyperparameter search
-save_path = os.path.join(save_path, 'training' + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+save_path = os.path.join(save_path, 'hypersearch' + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 os.makedirs(save_path)
 
-for i_test_fold in range(5):
 
-    print("Loading train dataset ... ", end='')
-    with open(train_data_path, 'rb') as file:
-        X, y = pickle.load(file)
-    print("Done.")
+utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0)
 
-    np.random.seed(0)
-    indices = np.arange(len(X))
-    np.random.shuffle(indices)
-    fold_indices = np.array_split(indices, num_train_folds)
+optimizer = BayesianOptimization(
+        f='',
+        pbounds={'batch_size'       : (0, 0.4),
+                 'n_hidden_1'       : (32, 1600),
+                 'n_hidden_2'       : (500, 4000),
+                 'learning_rate'    : (1e-6, 1e-4),
+                 'dropout'          : (0.05, 0.35),
+                 'lr_decay'         : (0.5, 0.9),
+                 'lr_decay_interval': (5, 50)},
+        verbose=0,
+        random_state=5
+)
+logger = JSONLogger(path=os.path.join(save_path, 'logs.json'))
+optimizer.subscribe(Events.OPTMIZATION_STEP, logger)
 
-    batch_size = 64
-    n_hidden_1 = 659
-    n_hidden_2 = 4096
-    learning_rate = 1e-5
-    dropout = 0.3
-    lr_decay = 1
-    lr_decay_interval = 5000
+np.random.seed(0)
+indices = np.arange(len(X))
+np.random.shuffle(indices)
+fold_indices = np.array_split(indices, num_train_folds)
 
-    with open(os.path.join(save_path, 'config.txt'), 'w') as file:
+for i_run in range(num_runs):
+
+    print("Testing hyperparameter configuration no. %d" % (i_run + 1))
+
+    next = optimizer.suggest(utility)
+
+    if next['batch_size'] > 0.5:
+        batch_size = 512
+    else:
+        batch_size = 64
+
+    n_hidden_1 = int(next['n_hidden_1'])
+    n_hidden_2 = int(next['n_hidden_2'])
+    learning_rate = float(next['learning_rate'])
+    dropout = float(next['dropout'])
+    lr_decay = float(next['lr_decay'])
+    lr_decay_interval = int(next['lr_decay_interval'])
+
+    # Generate save folder for the config
+    config_save_path = os.path.join(save_path, "config%d" % i_run)
+    os.makedirs(config_save_path)
+
+    with open(os.path.join(config_save_path, 'config.txt'), 'w') as file:
         print(yaml.dump({'n_hidden_1': n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
                          'dropout'   : dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
                          'lr_decay'  : lr_decay, 'lr_decay_interval': lr_decay_interval}))
@@ -70,7 +102,7 @@ for i_test_fold in range(5):
     n_folds = 0
 
     # Do the training and cross validation
-    for i_train_fold in range(num_train_folds):
+    for i_train_fold in folds:
         n_folds += 1
 
         train_idx = np.delete(indices, np.where(np.isin(indices, fold_indices[i_train_fold])))
@@ -81,12 +113,12 @@ for i_test_fold in range(5):
         X_val = X[val_idx].clone().detach()
         y_val = y[val_idx]
 
-        print("Normalize train data of test fold %d train fold %d ... " % (i_test_fold, i_train_fold))
-        X_train, means, std_devs = utils.normalize(X_train, tanh=False)
+        print("Normalizing train data of fold %d ... " % i_train_fold)
+        X_train, means, std_devs = utils.normalize(X_train)
         print("Done.")
 
-        print("Loading V for test fold %d train fold %d ... " % (i_test_fold, i_train_fold), end='')
-        with open(svd_load_paths[i_test_fold][i_train_fold], 'rb') as file:
+        print("Loading V matrix of fold %d ... " % i_train_fold, end='')
+        with open(svd_load_paths[i_train_fold], 'rb') as file:
             V = pickle.load(file)
         print("Done.")
 
@@ -100,16 +132,15 @@ for i_test_fold in range(5):
         train_data_sampler = SubsetRandomSampler(range(len(train_set)))
         val_data_sampler = SubsetRandomSampler(range(len(val_set)))
 
-        train_data_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=batch_size,
-                                                        sampler=train_data_sampler)
+        train_data_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=batch_size, sampler=train_data_sampler)
         val_data_loader = torch.utils.data.DataLoader(dataset=val_set, batch_size=batch_size, sampler=val_data_sampler)
 
         model = SynergyNetwork([n_hidden_1, n_hidden_2], X_train.shape[1], batch_norm, dropout, means, std_devs, V)
         solver = Solver(optim_args={"lr": learning_rate})
         start_epoch = 1
 
-        model_save_path = os.path.join(save_path, "model_test_fold_%d_train_fold_%d.model" % (i_test_fold, i_train_fold))
-        history_save_path = os.path.join(save_path, "history_test_fold_%d_train_fold_%d.model" % (i_test_fold, i_train_fold))
+        model_save_path = os.path.join(config_save_path, "model_fold_%d.model" % i_train_fold)
+        history_save_path = os.path.join(config_save_path, "history_fold_%d.p" % i_train_fold)
 
         val_loss = solver.train(lr_decay=lr_decay,
                                 start_epoch=start_epoch,
@@ -138,3 +169,6 @@ for i_test_fold in range(5):
         del y_val
         del V
 
+    # Use negative val_loss because the optimizer maximizes
+    optimizer.register(params=next, target=-(cum_val_loss/n_folds))
+    print(optimizer.max)
