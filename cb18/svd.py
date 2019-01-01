@@ -5,31 +5,38 @@ import numpy as np
 import torch
 import cb18.utils as utils
 
-config = {
-    'train_data_path':  '../datasets/train_data.p',
-
-}
+train_data_path     = "../datasets/train_data.p"
+fold_indices_path   = "../datasets/fold_indices.p"
+svd_save_paths      = ["../datasets/svd%d.p" % i for i in range(4)]
 
 print("Loading train dataset ... ", end='')
-with open(config['train_data_path'], 'rb') as train_data_file:
-    X, y = pickle.load(train_data_file)
+with open(train_data_path, 'rb') as file:
+    X, y = pickle.load(file)
+print("Done.")
+
+print("Loading fold indices ...", end='')
+with open(fold_indices_path, 'rb') as file:
+    fold_indices = pickle.load(file)
+print("Done.")
+
+# Calculate the SVD on the train data sets according to the folding indices
+for i in range(4):
+    train_indices = fold_indices[i][0]
+
+    # Use tensor cloning to copy the data from the original tensor
+    # It otherwise changes the original data during normalization
+    X_train = X[train_indices].clone().detach()
+
+    print("Normalize train data of fold %d ... " % i)
+    X_train, means, std_devs = utils.normalize(X_train, tanh=False)
+
+    print("Doing SVD decomposition for fold %d ... " % i, end='')
+    U, S, V = torch.svd(X_train)
     print("Done.")
 
-print("Splitting dataset ... ", end='')
-num_train = int(len(X)*0.8)
-num_val = len(X)-num_train
-torch.manual_seed(123)
-[train_set, val_set] = torch.utils.data.random_split(X, (num_train, num_val))
-print("Done.")
+    del X_train
 
-print("Doing SVD decomposition ... ")
-X_train = X[train_set.indices]
-X_train, means, std_devs = utils.normalize(X_train, tanh=False)
-
-U,S,V = torch.svd(X_train)
-print("Done.")
-
-print("Saving U,S,V ... ", end='')
-with open("../datasets/svd.p", 'wb') as file:
-    pickle.dump((U,S,V), file)
-print("Done.")
+    print("Saving U, S, V for fold %d ... " % i, end='')
+    with open(svd_save_paths[i], 'wb') as file:
+        pickle.dump((U, S, V), file)
+    print("Done.")

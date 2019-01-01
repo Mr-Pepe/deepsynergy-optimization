@@ -10,8 +10,8 @@ class Solver(object):
                          "eps": 1e-8,
                          "weight_decay": 0.0}
 
-    def __init__(self, optim=torch.optim.Adam, optim_args={},
-                 loss_func=torch.nn.MSELoss):
+    def __init__(self, optim=torch.optim.Adam, optim_args={}, loss_func=torch.nn.MSELoss()):
+
         optim_args_merged = self.default_adam_args.copy()
         optim_args_merged.update(optim_args)
         self.optim_args = optim_args_merged
@@ -20,37 +20,38 @@ class Solver(object):
 
         self.lr = self.optim_args['lr']
 
-        self._reset_histories()
 
-    def _reset_histories(self):
-        """
-        Resets train and val histories for the accuracy and the loss.
-        """
-        self.train_loss_history = []
-        self.val_loss_history = []
-        self.lr_history = []
+        self.history = {'train_loss_history': [],
+                        'val_loss_history': [],
+                        'lr_history': []
+                        }
 
-    def train(self, model, train_loader, val_loader, num_epochs=10, log_after_iters=1, save_after_epochs=1, start_epoch=0,
-              lr_decay=1, lr_decay_interval=1, save_path='../saves/train', patience=None, max_train_time_s=300000):
+        self.stop_reason = ""
+        self.training_time_s = 0
 
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    def train(self, model, train_loader, val_loader, num_epochs=None, log_after_iters=None, save_after_epochs=None,
+              start_epoch=1, lr_decay=1, lr_decay_interval=1, model_save_path=None, history_save_path=None, patience=None,
+              max_train_time_s=None):
+
+        if num_epochs is None: print("Number of epochs unspecified.")
+        if model_save_path is None: print("Model save path unspecified.")
+        if history_save_path is None: print("History save path unspecified.")
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         print("Using device: " + device.type)
 
         model.to(device)
 
         optim = self.optim(model.parameters(), **self.optim_args)
 
-        if start_epoch == 0:
-            self._reset_histories()
-
         iter_per_epoch = len(train_loader)
 
-        # Exponentially filtered training loss
+        # Exponentially filtered losses
         train_loss_avg = 0
         best_val_loss  = 0
         patience_counter = 0
         val_loss_avg = 0
-
 
         # Calculate the total number of minibatches for the training procedure
         n_iters = num_epochs*iter_per_epoch
@@ -85,7 +86,7 @@ class Solver(object):
                 pred = model(X)
 
                 # Calculate loss
-                criterion = torch.nn.MSELoss()
+                criterion = self.loss_func
                 loss = criterion(pred[:,0], y)
 
                 # Packpropagate and update weights
@@ -96,18 +97,17 @@ class Solver(object):
                 # Save loss to history
                 smooth_window_train = 15
 
-                self.train_loss_history.append(loss.item())
+                self.history['train_loss_history'].append(loss.item())
                 train_loss_avg = (smooth_window_train-1)/smooth_window_train*train_loss_avg + 1/smooth_window_train*loss.item()
 
-                # if i_iter%log_after_iters == 0:
-                #     print("Iteration " + str(i_iter) + "/" + str(n_iters) + "   Train loss: " + "{0:.3f}".format(loss.item()) + "   Avg: " + "{0:.3f}".format(loss_avg) + " - " + str(int((time.time()-t_start_iter)*1000)) + "ms")
+                if log_after_iters is not None and (i_iter % log_after_iters == 0):
+                    print("Iteration " + str(i_iter) + "/" + str(n_iters) + "   Train loss: " + "{0:.3f}".format(loss.item()) + "   Avg: " + "{0:.3f}".format(train_loss_avg) + " - " + str(int((time.time()-t_start_iter)*1000)) + "ms")
 
             # Save model and solver
-            if (i_epoch+1)%save_after_epochs == 0:
-                model.save(save_path + '/model' + str(i_epoch + 1))
-                self.save(save_path + '/solver' + str(i_epoch + 1))
+            if save_after_epochs is not None and (i_epoch%save_after_epochs == 0):
+                model.save(model_save_path)
+                self.save(history_save_path)
                 model.to(device)
-
 
             # Set model to evaluation mode
             model.eval()
@@ -129,13 +129,13 @@ class Solver(object):
                 pred = model(X)
 
                 # Calculate loss
-                criterion = torch.nn.MSELoss()
-                loss = criterion(pred[:,0], y)
+                criterion = self.loss_func
+                loss = criterion(pred[:, 0], y)
 
                 val_loss += loss.item()
 
             val_loss /= num_val_batches
-            self.val_loss_history.append(val_loss)
+            self.history['val_loss_history'].append(val_loss)
 
             smooth_window_val = 10
 
@@ -145,12 +145,12 @@ class Solver(object):
                 val_loss_avg = (smooth_window_val - 1) / smooth_window_val * val_loss_avg + 1 / smooth_window_val * val_loss
 
 
-            print("Epoch " + str(i_epoch+1) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(val_loss) + "   - Avg: " + "{0:.3f}".format(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
+            print("Epoch " + str(i_epoch) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(val_loss) + "   - Avg: " + "{0:.3f}".format(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
 
-            self.lr_history.append(self.lr)
+            self.history['lr_history'].append(self.lr)
 
             # Update learning rate
-            if (i_epoch+1)%lr_decay_interval == 0:
+            if i_epoch % lr_decay_interval == 0:
                 self.lr *= lr_decay
                 print("Learning rate: " + str(self.lr))
                 for i, _ in enumerate(optim.param_groups):
@@ -165,13 +165,12 @@ class Solver(object):
                     patience_counter += 1
 
                 if patience_counter > patience:
-                    stop_training = True
-                    print("Early stopping after " + str(i_epoch+1) + " epochs.")
+                    print("Early stopping after " + str(i_epoch) + " epochs.")
                     self.stop_reason = "Early stopping."
                     break
 
             # Stop if training time is over
-            if time.time()-t_start_training > max_train_time_s:
+            if max_train_time_s is not None and (time.time()-t_start_training > max_train_time_s):
                 print("Training time is over.")
                 self.stop_reason = "Training time over."
                 break
@@ -180,15 +179,16 @@ class Solver(object):
         self.training_time_s = time.time()-t_start_training
 
         # Save model and solver after training
-        model.save(save_path + '/model' + str(i_epoch + 1))
-        self.save(save_path + '/solver' + str(i_epoch + 1))
+        model.save(model_save_path)
+        self.save(history_save_path)
 
-        print('FINISH.\n\n\n')
+        print('FINISH.\n')
 
         # Return last smoothened validation loss
         return val_loss_avg
 
-
     def save(self, path):
-        print('Saving solver... %s' % path)
-        pickle.dump(self, open(path, 'wb'))
+        print('Saving history ... %s' % path, end='')
+        with open(path, 'wb') as file:
+            pickle.dump(self.history, file)
+        print("Done.")
