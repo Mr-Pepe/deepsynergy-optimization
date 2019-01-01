@@ -6,27 +6,23 @@ import os
 import os.path
 
 test_data_path  = "../datasets/test_data.p"
-model_paths      = ['/home/felipe/Projects/cb18/saves/search20181224210125/train20181225205131/model807',
-                    '/home/felipe/Projects/cb18/saves/search20181224210125/train20181225214100/model518',
-                    '/home/felipe/Projects/cb18/saves/search20181224210125/train20181226104223/model697']
-model_dir_path  = '/home/felipe/Projects/cb18/saves/gridSearch'
+model_paths      = []
+model_dir_path  = '/home/felipe/Projects/cb18/saves/search20181224210125'
 
 # mode 1: evaluate models on their own
 # mode 2: evaluate model mean
 mode = 2
 
-if model_paths is None:
+if len(model_paths) == 0:
     for dirpath, dirnames, filenames in os.walk(model_dir_path):
         for filename in [f for f in filenames if f.find('model') != -1]:
             model_paths.append(os.path.join(dirpath, filename))
 
 # Load test dataset
 print("Loading test dataset ... ", end='')
-test_data_file = open(test_data_path, 'rb')
-X, y = pickle.load(test_data_file)
-test_data_file.close()
-
-dataset = utils.Dataset(X, y)
+with open(test_data_path, 'rb') as file:
+    X, y = pickle.load(file)
+    dataset = utils.Dataset(X, y)
 print("Done.")
 
 if mode == 1:
