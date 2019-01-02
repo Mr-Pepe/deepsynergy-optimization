@@ -8,10 +8,6 @@ import cb18.utils as utils
 import datetime
 import os
 import yaml
-from bayes_opt import BayesianOptimization
-from bayes_opt import UtilityFunction
-from bayes_opt.observer import JSONLogger
-from bayes_opt.event import Events
 import numpy as np
 
 # Train model ensembles for all test folds
@@ -59,7 +55,7 @@ for i_test_fold in range(5):
     batch_size = 64
     n_hidden_1 = 659
     n_hidden_2 = 4096
-    learning_rate = 1e-5
+    learning_rate = 0.0008
     dropout = 0.3
     lr_decay = 1
     lr_decay_interval = 5000
@@ -137,5 +133,4 @@ for i_test_fold in range(5):
         del X_val
         del y_train
         del y_val
-        del V
 
