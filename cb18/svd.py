@@ -26,13 +26,13 @@ for i_test_fold in range(5):
     print("Normalize train data of test fold %d ... " % i_test_fold)
     X, means, std_devs = utils.normalize(X, tanh=False)
 
-    print("Doing SVD decomposition of train data for test fold  ... " % i_test_fold, end='')
+    print("Doing SVD decomposition of train data for test fold  %d ... " % i_test_fold, end='')
     U, S, V = X.svd()
     print("Done.")
 
     del X
 
-    print("Saving V for test fold %d ... " % i_test_fold, end='')
+    print("Saving S, V for test fold %d ... " % i_test_fold, end='')
     with open(svd_save_paths[i_test_fold], 'wb') as file:
-        pickle.dump(V, file)
+        pickle.dump((S, V), file)
     print("Done.")

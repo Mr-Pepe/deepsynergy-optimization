@@ -14,20 +14,19 @@ from bayes_opt.observer import JSONLogger
 from bayes_opt.event import Events
 import numpy as np
 
-num_train_folds = 5
-num_eigenvectors = 80
-
+# Train model ensembles for all test folds
 train_data_path     = ["../datasets/train_data_fold_%d.p" % i for i in range(5)]
-svd_load_paths      = [["../datasets/svd_test_fold_%d_train_fold_%d.p" % (i_test_fold, i_train_fold) for i_train_fold in range(num_train_folds)] for i_test_fold in range(5)]
+svd_load_paths      = ["../datasets/svd_fold_%d.p" % i for i in range(5)]
 
 save_path = '../saves'  # Used for saving model and solver
 
 # Training parameters
-num_runs = 100  # How often to train model
-max_train_time_s = 180000  # Maximum training time in seconds
+max_train_time_s = 180000  # Maximum training time in seconds for each model
 num_epochs = 5000  # Number of epochs to train each model
 
 # Fixed hyperparameters
+num_train_folds = 5
+num_eigenvectors = 80
 patience = 50  # Used for early stopping if validation performance does not improve
 batch_norm = True
 
@@ -40,11 +39,18 @@ os.makedirs(save_path)
 
 for i_test_fold in range(5):
 
-    print("Loading train dataset ... ", end='')
-    with open(train_data_path, 'rb') as file:
+    print("Loading train dataset for fold %d ... " % i_test_fold, end='')
+    with open(train_data_path[i_test_fold], 'rb') as file:
         X, y = pickle.load(file)
     print("Done.")
 
+    print("Loading V matrix of test fold %d ... " % i_test_fold, end='')
+    with open(svd_load_paths[i_test_fold], 'rb') as file:
+        _, V = pickle.load(file)
+        V = V[:, :num_eigenvectors]
+    print("Done.")
+
+    # Create indices for train/val folds
     np.random.seed(0)
     indices = np.arange(len(X))
     np.random.shuffle(indices)
@@ -85,12 +91,7 @@ for i_test_fold in range(5):
         X_train, means, std_devs = utils.normalize(X_train, tanh=False)
         print("Done.")
 
-        print("Loading V for test fold %d train fold %d ... " % (i_test_fold, i_train_fold), end='')
-        with open(svd_load_paths[i_test_fold][i_train_fold], 'rb') as file:
-            V = pickle.load(file)
-        print("Done.")
-
-        print("Projecting train data of fold %d ... " % i_train_fold, end='')
+        print("Projecting train data of train fold %d ... " % i_train_fold, end='')
         X_train = torch.matmul(X_train, V)
         print("Done. ")
 

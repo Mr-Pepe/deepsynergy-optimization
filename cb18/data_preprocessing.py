@@ -35,27 +35,27 @@ print("Splitting data ... ")
 fold_index = labels.values[:, 4].astype('int')
 
 # Create test data and training data for 5 folds
-for i in range(5):
+for i_test_fold in range(5):
     # Separate the test data from the rest and save it for final evaluation
-    test_idx    = np.where(fold_index == i)
+    test_idx    = np.where(fold_index == i_test_fold)
 
     X_test  = X[test_idx]
     y_test  = synergy_scores[test_idx]
 
-    print("Saving test dataset ... ", end='')
-    with open(test_data_save_path[i], 'wb') as saveFile:
+    print("Saving test dataset for fold %d ... " % i_test_fold, end='')
+    with open(test_data_save_path[i_test_fold], 'wb') as saveFile:
         pickle.dump((X_test, y_test), saveFile)
     print("Done.")
 
 
     # Get the training data and save it for later training
-    train_idx = np.where(fold_index != i)
+    train_idx = np.where(fold_index != i_test_fold)
 
     X_train = X[train_idx]
     y_train = synergy_scores[train_idx]
 
-    print("Saving training dataset ... ", end='')
-    with open(train_data_save_path[i], 'wb') as saveFile:
+    print("Saving training dataset for fold %d ... " % i_test_fold, end='')
+    with open(train_data_save_path[i_test_fold], 'wb') as saveFile:
         pickle.dump((X_train, y_train), saveFile)
     print("Done.")
 

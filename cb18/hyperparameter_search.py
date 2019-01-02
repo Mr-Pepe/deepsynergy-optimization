@@ -14,12 +14,9 @@ from bayes_opt.observer import JSONLogger
 from bayes_opt.event import Events
 import numpy as np
 
-
-num_train_folds = 5
-num_eigenvectors = 80
-
+# Specify the fold on which to perform the hyperparameter search
 train_data_path = "../datasets/train_data_fold_0.p"
-svd_load_paths = ["../datasets/svd_test_fold_0_train_fold_%d.p" % i for i in range(num_train_folds)]
+svd_load_path = "../datasets/svd_fold_0.p"
 
 save_path = '../saves'  # Used for saving model and solver
 
@@ -28,13 +25,15 @@ with open(train_data_path, 'rb') as file:
     X, y = pickle.load(file)
 print("Done.")
 
+
 # Training parameters
 num_runs = 100                # How often to train model
 max_train_time_s = 18000    # Maximum training time in seconds
 num_epochs = 5000           # Number of epochs to train each model
-folds = range(4)            # Which folds to use for training
 
 # Fixed hyperparameters
+num_train_folds = 5
+num_eigenvectors = 80
 patience = 50  # Used for early stopping if validation performance does not improve
 batch_norm = True
 
@@ -45,6 +44,11 @@ save_interval = None
 save_path = os.path.join(save_path, 'hypersearch' + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 os.makedirs(save_path)
 
+print("Loading V matrix... ", end='')
+with open(svd_load_path, 'rb') as file:
+    _, V = pickle.load(file)
+    V = V[:, :num_eigenvectors]
+print("Done.")
 
 utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0)
 
@@ -102,7 +106,7 @@ for i_run in range(num_runs):
     n_folds = 0
 
     # Do the training and cross validation
-    for i_train_fold in folds:
+    for i_train_fold in range(num_train_folds):
         n_folds += 1
 
         train_idx = np.delete(indices, np.where(np.isin(indices, fold_indices[i_train_fold])))
@@ -113,16 +117,11 @@ for i_run in range(num_runs):
         X_val = X[val_idx].clone().detach()
         y_val = y[val_idx]
 
-        print("Normalizing train data of fold %d ... " % i_train_fold)
+        print("Normalizing train data of train fold %d ... " % i_train_fold)
         X_train, means, std_devs = utils.normalize(X_train)
         print("Done.")
 
-        print("Loading V matrix of fold %d ... " % i_train_fold, end='')
-        with open(svd_load_paths[i_train_fold], 'rb') as file:
-            V = pickle.load(file)
-        print("Done.")
-
-        print("Projecting train data of fold %d ... " % i_train_fold, end='')
+        print("Projecting train data of train fold %d ... " % i_train_fold, end='')
         X_train = torch.matmul(X_train, V)
         print("Done. ")
 
