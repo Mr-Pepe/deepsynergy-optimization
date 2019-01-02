@@ -106,7 +106,7 @@ for i_test_fold in range(5):
         start_epoch = 1
 
         model_save_path = os.path.join(save_path, "model_test_fold_%d_train_fold_%d.model" % (i_test_fold, i_train_fold))
-        history_save_path = os.path.join(save_path, "history_test_fold_%d_train_fold_%d.model" % (i_test_fold, i_train_fold))
+        history_save_path = os.path.join(save_path, "history_test_fold_%d_train_fold_%d.p" % (i_test_fold, i_train_fold))
 
         val_loss = solver.train(lr_decay=lr_decay,
                                 start_epoch=start_epoch,
