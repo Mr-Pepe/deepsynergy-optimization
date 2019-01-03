@@ -175,7 +175,8 @@ class Solver(object):
                 self.stop_reason = "Training time over."
                 break
 
-        self.stop_reason = "Reached number of specified epochs."
+        if self.stop_reason is "":
+            self.stop_reason = "Reached number of specified epochs."
         self.training_time_s = time.time()-t_start_training
 
         # Save model and solver after training

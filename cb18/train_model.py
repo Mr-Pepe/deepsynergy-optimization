@@ -22,7 +22,7 @@ num_epochs = 5000  # Number of epochs to train each model
 
 # Fixed hyperparameters
 num_train_folds = 5
-num_eigenvectors = 80
+num_eigenvectors = 107
 patience = 50  # Used for early stopping if validation performance does not improve
 batch_norm = True
 
@@ -61,10 +61,10 @@ for i_test_fold in range(5):
     lr_decay_interval = 5000
 
     with open(os.path.join(save_path, 'config.txt'), 'w') as file:
-        print(yaml.dump({'n_hidden_1': n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
+        print(yaml.dump({'num_eigenvectors': num_eigenvectors, 'n_hidden_1': n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
                          'dropout'   : dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
                          'lr_decay'  : lr_decay, 'lr_decay_interval': lr_decay_interval}))
-        yaml.dump({'n_hidden_1': n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
+        yaml.dump({'num_eigenvectors': num_eigenvectors, 'n_hidden_1': n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
                    'dropout'   : dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
                    'lr_decay'  : lr_decay, 'lr_decay_interval': lr_decay_interval}, file)
 
