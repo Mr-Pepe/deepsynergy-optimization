@@ -5,38 +5,34 @@ import numpy as np
 import torch
 import cb18.utils as utils
 
-train_data_path     = "../datasets/train_data.p"
-fold_indices_path   = "../datasets/fold_indices.p"
-svd_save_paths      = ["../datasets/svd%d.p" % i for i in range(4)]
+train_data_path     = ["../datasets/train_data_fold_%d.p" % i for i in range(5)]
+svd_save_paths      = ["../datasets/svd_fold_%d.p" % i for i in range(5)]
 
-print("Loading train dataset ... ", end='')
-with open(train_data_path, 'rb') as file:
-    X, y = pickle.load(file)
-print("Done.")
+for i_test_fold in range(5):
 
-print("Loading fold indices ...", end='')
-with open(fold_indices_path, 'rb') as file:
-    fold_indices = pickle.load(file)
-print("Done.")
-
-# Calculate the SVD on the train data sets according to the folding indices
-for i in range(4):
-    train_indices = fold_indices[i][0]
-
-    # Use tensor cloning to copy the data from the original tensor
-    # It otherwise changes the original data during normalization
-    X_train = X[train_indices].clone().detach()
-
-    print("Normalize train data of fold %d ... " % i)
-    X_train, means, std_devs = utils.normalize(X_train, tanh=False)
-
-    print("Doing SVD decomposition for fold %d ... " % i, end='')
-    U, S, V = torch.svd(X_train)
+    print("Loading train dataset for test fold %d... " % i_test_fold, end='')
+    with open(train_data_path[i_test_fold], 'rb') as file:
+        X, y = pickle.load(file)
     print("Done.")
 
-    del X_train
 
-    print("Saving U, S, V for fold %d ... " % i, end='')
-    with open(svd_save_paths[i], 'wb') as file:
-        pickle.dump((U, S, V), file)
+    # Calculate the SVD on the train data sets according to the folding indices
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    print("Using device: " + device.type)
+
+    X.to(device)
+
+    print("Normalize train data of test fold %d ... " % i_test_fold)
+    X, means, std_devs = utils.normalize(X, tanh=False)
+
+    print("Doing SVD decomposition of train data for test fold  %d ... " % i_test_fold, end='')
+    U, S, V = X.svd()
+    print("Done.")
+
+    del X
+
+    print("Saving S, V for test fold %d ... " % i_test_fold, end='')
+    with open(svd_save_paths[i_test_fold], 'wb') as file:
+        pickle.dump((S, V), file)
     print("Done.")

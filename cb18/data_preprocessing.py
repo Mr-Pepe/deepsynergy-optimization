@@ -7,9 +7,8 @@ import numpy as np
 input_features_load_path = "../datasets/X.p.gz"
 output_data_load_path    = "../datasets/labels.csv"
 
-test_data_save_path    = "../datasets/test_data.p"
-train_data_save_path   = "../datasets/train_data.p"
-fold_indices_save_path = "../datasets/fold_indices.p"
+test_data_save_path      = ["../datasets/test_data_fold_%d.p" % i for i in range(5)]
+train_data_save_path     = ["../datasets/train_data_fold_%d.p" % i for i in range(5)]
 
 
 ## Load the input data
@@ -35,48 +34,29 @@ synergy_scores = synergy_scores.float()
 print("Splitting data ... ")
 fold_index = labels.values[:, 4].astype('int')
 
-# Separate the test data from the rest and save it for final evaluation
-test_idx    = np.where(fold_index == 0)
+# Create test data and training data for 5 folds
+for i_test_fold in range(5):
+    # Separate the test data from the rest and save it for final evaluation
+    test_idx    = np.where(fold_index == i_test_fold)
 
-X_test  = X[test_idx]
-y_test  = synergy_scores[test_idx]
+    X_test  = X[test_idx]
+    y_test  = synergy_scores[test_idx]
 
-print("Saving test dataset ... ", end='')
-with open(test_data_save_path, 'wb') as saveFile:
-    pickle.dump((X_test, y_test), saveFile)
-print("Done.")
-
-
-# Get the training data and save it for later training
-train_idx = np.where(fold_index != 0)
-
-X_train = X[train_idx]
-y_train = synergy_scores[train_idx]
-
-print("Saving training dataset ... ", end='')
-with open(train_data_save_path, 'wb') as saveFile:
-    pickle.dump((X_train, y_train), saveFile)
-print("Done.")
-
-# Create folds for the fold indices 1 ... 4 where in each fold one index is held out as validation set
-# The indices for each fold are stored for later use during training
-fold_indices = []
-
-# Indices must index the train dataset and not the whole dataset including the test data
-fold_index = fold_index[train_idx]
+    print("Saving test dataset for fold %d ... " % i_test_fold, end='')
+    with open(test_data_save_path[i_test_fold], 'wb') as saveFile:
+        pickle.dump((X_test, y_test), saveFile)
+    print("Done.")
 
 
-for i in range(1,5):
-    train_idx = np.where(fold_index != i)
-    val_index = np.where(fold_index == i)
+    # Get the training data and save it for later training
+    train_idx = np.where(fold_index != i_test_fold)
 
-    fold_indices.append((train_idx[0], val_index[0]))
+    X_train = X[train_idx]
+    y_train = synergy_scores[train_idx]
 
-
-print("Saving indices for the folds ...", end='')
-with open(fold_indices_save_path, 'wb') as saveFile:
-    pickle.dump(fold_indices, saveFile)
-print("Done.")
-
+    print("Saving training dataset for fold %d ... " % i_test_fold, end='')
+    with open(train_data_save_path[i_test_fold], 'wb') as saveFile:
+        pickle.dump((X_train, y_train), saveFile)
+    print("Done.")
 
 

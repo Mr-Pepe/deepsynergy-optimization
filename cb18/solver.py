@@ -95,7 +95,7 @@ class Solver(object):
                 optim.step()
 
                 # Save loss to history
-                smooth_window_train = 15
+                smooth_window_train = 100
 
                 self.history['train_loss_history'].append(loss.item())
                 train_loss_avg = (smooth_window_train-1)/smooth_window_train*train_loss_avg + 1/smooth_window_train*loss.item()
@@ -145,7 +145,7 @@ class Solver(object):
                 val_loss_avg = (smooth_window_val - 1) / smooth_window_val * val_loss_avg + 1 / smooth_window_val * val_loss
 
 
-            print("Epoch " + str(i_epoch) + '/' + "{0:.3f}".format(num_epochs) + '   Val loss: '+ "{0:.3f}".format(val_loss) + "   - Avg: " + "{0:.3f}".format(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
+            print("Epoch " + str(i_epoch) + '/' + "{0:.3f}".format(num_epochs) + ' Train loss: ' + "{0:.3f}".format(train_loss_avg) + '   Val loss: '+ "{0:.3f}".format(val_loss) + "   - Avg: " + "{0:.3f}".format(val_loss_avg) + "   - " + str(int((time.time()-t_start_epoch)*1000)) + "ms" )
 
             self.history['lr_history'].append(self.lr)
 
@@ -175,7 +175,8 @@ class Solver(object):
                 self.stop_reason = "Training time over."
                 break
 
-        self.stop_reason = "Reached number of specified epochs."
+        if self.stop_reason is "":
+            self.stop_reason = "Reached number of specified epochs."
         self.training_time_s = time.time()-t_start_training
 
         # Save model and solver after training
@@ -190,5 +191,5 @@ class Solver(object):
     def save(self, path):
         print('Saving history ... %s' % path, end='')
         with open(path, 'wb') as file:
-            pickle.dump(self.history, file)
+            pickle.dump((self.history, self.stop_reason, self.training_time_s), file)
         print("Done.")

@@ -21,10 +21,13 @@ class Dataset(torch.utils.data.Dataset):
 
 
 def show_solver_history(path):
-    solver = pickle.load(open(path, 'rb'))
+    history, stop_reason, stop_time = pickle.load(open(path, 'rb'))
 
-    train_loss = np.array(solver['train_loss_history'])
-    val_loss = np.array(solver['val_loss_history'])
+    print("Stop reason: %s" %stop_reason)
+    print("Stop time: %fs" %stop_time)
+
+    train_loss = np.array(history['train_loss_history'])
+    val_loss = np.array(history['val_loss_history'])
 
     f, (ax1, ax2, ax3) = plt.subplots(3,1)
 

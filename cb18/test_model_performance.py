@@ -4,58 +4,26 @@ import pickle
 import torch
 import os
 import os.path
+import matplotlib.pyplot as plt
 
-test_data_path  = "../datasets/test_data.p"
-model_paths      = []
-model_dir_path  = '/home/felipe/Projects/cb18/saves/search20181224210125'
+test_data_paths  = ["../datasets/test_data_fold_%d.p" % i for i in range(5)]
+model_dir_path  = '../saves/training20190103093146'
 
-# mode 1: evaluate models on their own
-# mode 2: evaluate model mean
-mode = 2
+for i_test_fold in range(5):
 
-if len(model_paths) == 0:
+    # Load test dataset
+    print("Loading test dataset for test fold %d ... " %i_test_fold, end='')
+    with open(test_data_paths[i_test_fold], 'rb') as file:
+        X, y = pickle.load(file)
+        dataset = utils.Dataset(X, y)
+    print("Done.")
+
+    # Find the corresponding models on the path
+    model_paths = []
     for dirpath, dirnames, filenames in os.walk(model_dir_path):
-        for filename in [f for f in filenames if f.find('model') != -1]:
+        for filename in [f for f in filenames if f.find('model_test_fold_%d' %i_test_fold) != -1]:
             model_paths.append(os.path.join(dirpath, filename))
 
-# Load test dataset
-print("Loading test dataset ... ", end='')
-with open(test_data_path, 'rb') as file:
-    X, y = pickle.load(file)
-    dataset = utils.Dataset(X, y)
-print("Done.")
-
-if mode == 1:
-
-    best_mse = 0
-
-    for path in model_paths:
-
-        print("Loading model " + path + " ... ", end='')
-        model = torch.load(path)
-        model.eval()
-        print("Done.")
-
-        print("Evaluating model ... ", end='')
-        pred_scores = model(X)
-        print("Done.")
-
-        mse = pred_scores[:,0]-y
-        mse = mse.pow(2)
-        mse = mse.sum()/len(mse)
-
-
-        print("Test score: " + str(mse.item()))
-
-        if best_mse == 0 or mse < best_mse:
-            best_mse = mse
-            best_model_path = path
-            print("New best MSE.")
-
-
-    print("Best model: " + best_model_path)
-
-elif mode == 2:
 
     overall_pred_scores = None
     n_overall_pred_scores = 0
@@ -65,16 +33,16 @@ elif mode == 2:
 
     for path in model_paths:
 
-        print("Loading model " + path + " ... ", end='')
+        # print("Loading model " + path + " ... ", end='')
         model = torch.load(path)
         model.eval()
-        print("Done.")
+        # print("Done.")
 
-        print("Evaluating model ... ", end='')
+        # print("Evaluating model ... ", end='')
         pred_scores = model(X)
         del model
         pred_scores = pred_scores.detach()
-        print("Done.")
+        # print("Done.")
 
         if overall_pred_scores is None:
             overall_pred_scores = torch.t(pred_scores)
@@ -97,5 +65,7 @@ elif mode == 2:
 
         mse_combined_history.append(mse_combined.item())
 
-        print("Val score this model: " + "{0:.3f}".format(mse.item()) + "  Combined: " + "{0:.3f}".format(
+        print("Test score this model: " + "{0:.3f}".format(mse.item()) + "  Combined: " + "{0:.3f}".format(
             mse_combined.item()))
+
+    plt.scatter(y.numpy(), overall_pred_scores.mean(dim=0).numpy())
