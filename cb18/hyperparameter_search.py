@@ -13,10 +13,12 @@ from bayes_opt import UtilityFunction
 from bayes_opt.observer import JSONLogger
 from bayes_opt.event import Events
 import numpy as np
+import pandas as pd
 
 # Specify the fold on which to perform the hyperparameter search
 train_data_path = "../datasets/train_data_fold_0.p"
 svd_load_path = "../datasets/svd_fold_0.p"
+fold_index_path     = "../datasets/labels.csv"
 
 save_path = '../saves'  # Used for saving model and solver
 
@@ -32,7 +34,6 @@ max_train_time_s = 18000    # Maximum training time in seconds
 num_epochs = 5000           # Number of epochs to train each model
 
 # Fixed hyperparameters
-num_train_folds = 5
 num_eigenvectors = 80
 patience = 50  # Used for early stopping if validation performance does not improve
 batch_norm = True
@@ -67,10 +68,10 @@ optimizer = BayesianOptimization(
 logger = JSONLogger(path=os.path.join(save_path, 'logs.json'))
 optimizer.subscribe(Events.OPTMIZATION_STEP, logger)
 
-np.random.seed(0)
-indices = np.arange(len(X))
-np.random.shuffle(indices)
-fold_indices = np.array_split(indices, num_train_folds)
+labels = pd.read_csv(fold_index_path, index_col=0)
+labels = pd.concat([labels, labels])
+fold_indeces = labels.values[:, 4].astype('int')
+fold_indeces = fold_indeces[np.where(fold_indeces != 0)]
 
 for i_run in range(num_runs):
 
@@ -102,15 +103,17 @@ for i_run in range(num_runs):
                    'dropout'   : dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
                    'lr_decay'  : lr_decay, 'lr_decay_interval': lr_decay_interval}, file)
 
+
+
     cum_val_loss = 0
     n_folds = 0
 
     # Do the training and cross validation
-    for i_train_fold in range(num_train_folds):
+    for i_train_fold in range(1, 5):
         n_folds += 1
 
-        train_idx = np.delete(indices, np.where(np.isin(indices, fold_indices[i_train_fold])))
-        val_idx = fold_indices[i_train_fold]
+        train_idx = np.where(fold_indeces != i_train_fold)
+        val_idx = np.where(fold_indeces == i_train_fold)
 
         X_train = X[train_idx].clone().detach()
         y_train = y[train_idx]

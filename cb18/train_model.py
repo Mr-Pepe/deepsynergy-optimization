@@ -9,10 +9,12 @@ import datetime
 import os
 import yaml
 import numpy as np
+import pandas as pd
 
 # Train model ensembles for all test folds
 train_data_path     = ["../datasets/train_data_fold_%d.p" % i for i in range(5)]
 svd_load_paths      = ["../datasets/svd_fold_%d.p" % i for i in range(5)]
+fold_index_path     = "../datasets/labels.csv"
 
 save_path = '../saves'  # Used for saving model and solver
 
@@ -21,7 +23,6 @@ max_train_time_s = 180000  # Maximum training time in seconds for each model
 num_epochs = 5000  # Number of epochs to train each model
 
 # Fixed hyperparameters
-num_train_folds = 5
 num_eigenvectors = 107
 patience = 50  # Used for early stopping if validation performance does not improve
 batch_norm = True
@@ -46,11 +47,10 @@ for i_test_fold in range(5):
         V = V[:, :num_eigenvectors]
     print("Done.")
 
-    # Create indices for train/val folds
-    np.random.seed(0)
-    indices = np.arange(len(X))
-    np.random.shuffle(indices)
-    fold_indices = np.array_split(indices, num_train_folds)
+    labels = pd.read_csv(fold_index_path, index_col=0)
+    labels = pd.concat([labels, labels])
+    fold_indeces = labels.values[:, 4].astype('int')
+    fold_indeces = fold_indeces[np.where(fold_indeces!=i_test_fold)]
 
     batch_size = 64
     n_hidden_1 = 659
@@ -72,11 +72,15 @@ for i_test_fold in range(5):
     n_folds = 0
 
     # Do the training and cross validation
-    for i_train_fold in range(num_train_folds):
+    for i_train_fold in range(5):
+
+        if i_train_fold == i_test_fold:
+            continue
+
         n_folds += 1
 
-        train_idx = np.delete(indices, np.where(np.isin(indices, fold_indices[i_train_fold])))
-        val_idx = fold_indices[i_train_fold]
+        train_idx = np.where(fold_indeces != i_train_fold)
+        val_idx = np.where(fold_indeces == i_train_fold)
 
         X_train = X[train_idx].clone().detach()
         y_train = y[train_idx]
