@@ -56,9 +56,9 @@ utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0)
 optimizer = BayesianOptimization(
         f='',
         pbounds={'batch_size'       : (0, 0),
-                 'n_hidden_1'       : (512, 4096),
-                 'n_hidden_2'       : (256, 4096),
-                 'learning_rate'    : (0.0008, 0.0008),
+                 'n_hidden_1'       : (0, 5),
+                 'n_hidden_2'       : (0, 5),
+                 'learning_rate'    : (0, 1),
                  'dropout'          : (0.05, 0.5),
                  'lr_decay'         : (1, 1),
                  'lr_decay_interval': (100, 100)},
@@ -84,9 +84,10 @@ for i_run in range(num_runs):
     else:
         batch_size = 64
 
-    n_hidden_1 = int(next['n_hidden_1'])
-    n_hidden_2 = int(next['n_hidden_2'])
-    learning_rate = float(next['learning_rate'])
+    n_hidden_1 = pow(2, 5+int(next['n_hidden_1']))
+    n_hidden_2 = pow(2, 5+int(next['n_hidden_2']))
+    learning_rate = (pow(2, next['learning_rate']) - 1e-5) / (1e-3 - 1e-5)
+
     dropout = float(next['dropout'])
     lr_decay = float(next['lr_decay'])
     lr_decay_interval = int(next['lr_decay_interval'])
