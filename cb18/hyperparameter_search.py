@@ -56,12 +56,12 @@ utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0)
 optimizer = BayesianOptimization(
         f='',
         pbounds={'batch_size'       : (0, 0.4),
-                 'n_hidden_1'       : (32, 1600),
-                 'n_hidden_2'       : (500, 4000),
-                 'learning_rate'    : (1e-6, 1e-4),
-                 'dropout'          : (0.05, 0.35),
-                 'lr_decay'         : (0.5, 0.9),
-                 'lr_decay_interval': (5, 50)},
+                 'n_hidden_1'       : (256, 4096),
+                 'n_hidden_2'       : (256, 4096),
+                 'learning_rate'    : (1e-5, 1e-5),
+                 'dropout'          : (0.05, 0.5),
+                 'lr_decay'         : (1, 1),
+                 'lr_decay_interval': (100, 100)},
         verbose=0,
         random_state=5
 )
