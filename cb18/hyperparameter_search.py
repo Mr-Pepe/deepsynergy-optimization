@@ -86,7 +86,7 @@ for i_run in range(num_runs):
 
     n_hidden_1 = pow(2, 5+int(next['n_hidden_1']))
     n_hidden_2 = pow(2, 5+int(next['n_hidden_2']))
-    learning_rate = (pow(2, next['learning_rate']) - 1e-5) / (1e-3 - 1e-5)
+    learning_rate = (pow(2, next['learning_rate']) - 1) * (1e-3 - 1e-5) + 1e-5
 
     dropout = float(next['dropout'])
     lr_decay = float(next['lr_decay'])
