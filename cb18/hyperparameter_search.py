@@ -31,7 +31,7 @@ print("Done.")
 # Training parameters
 num_runs = 100                # How often to train model
 max_train_time_s = 18000    # Maximum training time in seconds
-num_epochs = 5000           # Number of epochs to train each model
+num_epochs = 100           # Number of epochs to train each model
 
 # Fixed hyperparameters
 num_eigenvectors = 80
@@ -55,10 +55,10 @@ utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0)
 
 optimizer = BayesianOptimization(
         f='',
-        pbounds={'batch_size'       : (0, 0.4),
-                 'n_hidden_1'       : (256, 4096),
+        pbounds={'batch_size'       : (0, 0),
+                 'n_hidden_1'       : (512, 4096),
                  'n_hidden_2'       : (256, 4096),
-                 'learning_rate'    : (1e-5, 1e-5),
+                 'learning_rate'    : (0.0008, 0.0008),
                  'dropout'          : (0.05, 0.5),
                  'lr_decay'         : (1, 1),
                  'lr_decay_interval': (100, 100)},
@@ -91,18 +91,9 @@ for i_run in range(num_runs):
     lr_decay = float(next['lr_decay'])
     lr_decay_interval = int(next['lr_decay_interval'])
 
-    # Generate save folder for the config
-    config_save_path = os.path.join(save_path, "config%d" % i_run)
-    os.makedirs(config_save_path)
-
-    with open(os.path.join(config_save_path, 'config.txt'), 'w') as file:
-        print(yaml.dump({'n_hidden_1': n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
-                         'dropout'   : dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
-                         'lr_decay'  : lr_decay, 'lr_decay_interval': lr_decay_interval}))
-        yaml.dump({'n_hidden_1': n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
-                   'dropout'   : dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
-                   'lr_decay'  : lr_decay, 'lr_decay_interval': lr_decay_interval}, file)
-
+    print(yaml.dump({'n_hidden_1': n_hidden_1, 'n_hidden_2': n_hidden_2, 'batch_norm': batch_norm,
+                     'dropout'   : dropout, 'batch_size': batch_size, 'learning_rate': learning_rate,
+                     'lr_decay'  : lr_decay, 'lr_decay_interval': lr_decay_interval}))
 
 
     cum_val_loss = 0
@@ -141,9 +132,6 @@ for i_run in range(num_runs):
         solver = Solver(optim_args={"lr": learning_rate})
         start_epoch = 1
 
-        model_save_path = os.path.join(config_save_path, "model_fold_%d.model" % i_train_fold)
-        history_save_path = os.path.join(config_save_path, "history_fold_%d.p" % i_train_fold)
-
         val_loss = solver.train(lr_decay=lr_decay,
                                 start_epoch=start_epoch,
                                 model=model,
@@ -153,8 +141,8 @@ for i_run in range(num_runs):
                                 log_after_iters=log_interval,
                                 save_after_epochs=save_interval,
                                 lr_decay_interval=lr_decay_interval,
-                                model_save_path=model_save_path,
-                                history_save_path=history_save_path,
+                                model_save_path="",
+                                history_save_path="",
                                 patience=patience,
                                 max_train_time_s=max_train_time_s
                                 )
