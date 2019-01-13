@@ -180,8 +180,10 @@ class Solver(object):
         self.training_time_s = time.time()-t_start_training
 
         # Save model and solver after training
-        model.save(model_save_path)
-        self.save(history_save_path)
+        if model_save_path != '':
+            model.save(model_save_path)
+        if history_save_path != '':
+            self.save(history_save_path)
 
         print('FINISH.\n')
 
