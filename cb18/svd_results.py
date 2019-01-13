@@ -1,10 +1,15 @@
-import cb18.utils as utils
 import pickle
-import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 import torch
 
 svd_load_paths      = ["../datasets/svd_fold_%d.p" % i for i in range(5)]
+
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 22}
+
+matplotlib.rc('font', **font)
 
 for i_test_fold in range(5):
 
@@ -17,10 +22,16 @@ for i_test_fold in range(5):
     # Plot variance coverage
     var = torch.cumsum(S.pow(2) / S.pow(2).sum(), 0)
 
+    fig = plt.figure()
+
     plt.plot(var[:200].numpy())
+    plt.title("Variance Coverage")
     plt.xlabel("Ordered Eigenvectors")
-    plt.ylabel("Covered Variance")
+    plt.ylabel("Cumulative covered Variance")
     plt.show()
+
+    fig.savefig('covered_variance.pdf', format='pdf')
+
 
 
 
