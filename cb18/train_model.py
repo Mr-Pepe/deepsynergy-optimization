@@ -52,10 +52,19 @@ for i_test_fold in range(5):
     fold_indeces = labels.values[:, 4].astype('int')
     fold_indeces = fold_indeces[np.where(fold_indeces!=i_test_fold)]
 
-    batch_size = 64
-    n_hidden_1 = 659
-    n_hidden_2 = 4096
-    learning_rate = 0.0008
+    ## DeepSynergy parameters
+    # batch_size = 64
+    # n_hidden_1 = 8192
+    # n_hidden_2 = 4096
+    # learning_rate = 1e-5
+    # dropout = 0.5
+    # lr_decay = 1
+    # lr_decay_interval = 5000
+
+    batch_size = 2048
+    n_hidden_1 = 512
+    n_hidden_2 = 256
+    learning_rate = 0.001
     dropout = 0.3
     lr_decay = 1
     lr_decay_interval = 5000
