@@ -87,7 +87,9 @@ for i_run in range(num_runs):
     batch_size = pow(2, 8 + int(next['batch_size']))
     n_hidden_1 = pow(2, 5 + int(next['n_hidden_1']))
     n_hidden_2 = pow(2, 5 + int(next['n_hidden_2']))
-    learning_rate = (pow(2, float(next['learning_rate'])) - 1) * (1e-3 - 1e-5) + 1e-5
+    lr_min = 1e-6
+    lr_max = 1e-5
+    learning_rate = (pow(2, float(next['learning_rate'])) - 1) * (lr_max - lr_min) + lr_min
 
     dropout = float(next['dropout'])
     lr_decay = float(next['lr_decay'])
