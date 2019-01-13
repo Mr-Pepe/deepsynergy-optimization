@@ -23,9 +23,11 @@ max_train_time_s = 180000  # Maximum training time in seconds for each model
 num_epochs = 5000  # Number of epochs to train each model
 
 # Fixed hyperparameters
+n_train_folds = 10
 num_eigenvectors = 107
 patience = 50  # Used for early stopping if validation performance does not improve
 batch_norm = True
+use_given_folds = True
 
 log_interval = None
 save_interval = None
@@ -47,10 +49,17 @@ for i_test_fold in range(5):
         V = V[:, :num_eigenvectors]
     print("Done.")
 
-    labels = pd.read_csv(fold_index_path, index_col=0)
-    labels = pd.concat([labels, labels])
-    fold_indeces = labels.values[:, 4].astype('int')
-    fold_indeces = fold_indeces[np.where(fold_indeces!=i_test_fold)]
+    if use_given_folds:
+        labels = pd.read_csv(fold_index_path, index_col=0)
+        labels = pd.concat([labels, labels])
+        fold_indices = labels.values[:, 4].astype('int')
+        fold_indices = fold_indices[np.where(fold_indices != i_test_fold)]
+        n_train_folds = 5
+    else:
+        np.random.seed(0)
+        indices = np.arange(len(X))
+        np.random.shuffle(indices)
+        fold_indices = np.array_split(indices, n_train_folds)
 
     ## DeepSynergy parameters
     # batch_size = 64
@@ -80,21 +89,32 @@ for i_test_fold in range(5):
     cum_val_loss = 0
     n_folds = 0
 
-    # Do the training and cross validation
-    for i_train_fold in range(5):
 
-        if i_train_fold == i_test_fold:
-            continue
+    # Do the training and cross validation
+    for i_train_fold in range(n_train_folds):
+
+        if use_given_folds:
+            if i_train_fold == i_test_fold:
+                continue
+            else:
+                train_idx = np.where(fold_indices != i_train_fold)
+                val_idx = np.where(fold_indices == i_train_fold)
+        else:
+            train_idx   = np.delete(indices, np.where(np.isin(indices, fold_indices[i_train_fold])))
+            val_idx     = fold_indices[i_train_fold]
 
         n_folds += 1
-
-        train_idx = np.where(fold_indeces != i_train_fold)
-        val_idx = np.where(fold_indeces == i_train_fold)
 
         X_train = X[train_idx].clone().detach()
         y_train = y[train_idx]
         X_val = X[val_idx].clone().detach()
         y_val = y[val_idx]
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        X_train.to(device)
+        y_train.to(device)
+        X_val.to(device)
+        y_val.to(device)
 
         print("Normalize train data of test fold %d train fold %d ... " % (i_test_fold, i_train_fold))
         X_train, means, std_devs = utils.normalize(X_train, tanh=False)
