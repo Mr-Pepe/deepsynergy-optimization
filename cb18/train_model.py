@@ -27,7 +27,7 @@ n_train_folds = 10
 num_eigenvectors = 107
 patience = 50  # Used for early stopping if validation performance does not improve
 batch_norm = True
-use_given_folds = True
+use_given_folds = False
 
 log_interval = None
 save_interval = None
