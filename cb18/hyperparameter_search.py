@@ -55,7 +55,7 @@ utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0)
 
 optimizer = BayesianOptimization(
         f='',
-        pbounds={'batch_size'       : (0, 4),
+        pbounds={'batch_size'       : (0, 2),
                  'n_hidden_1'       : (0, 5),
                  'n_hidden_2'       : (0, 5),
                  'learning_rate'    : (0, 1),
@@ -84,7 +84,7 @@ for i_run in range(num_runs):
     else:
         batch_size = 64
 
-    batch_size = pow(2, 7 + int(next['batch_size']))
+    batch_size = pow(2, 8 + int(next['batch_size']))
     n_hidden_1 = pow(2, 5 + int(next['n_hidden_1']))
     n_hidden_2 = pow(2, 5 + int(next['n_hidden_2']))
     learning_rate = (pow(2, float(next['learning_rate'])) - 1) * (1e-3 - 1e-5) + 1e-5
