@@ -2,11 +2,11 @@
 
 This repo holds the code for a final project during the course "Hot Topics in Computational Biology" by Prof. Zeng at Tsinghua University, Beijing.
 
-The project aims to improve performance of the DeepSynergy framework for synergy prediction of drug combinations for cancer treatment proposed by Preuer et al..
+The project aims to improve performance of the DeepSynergy framework for synergy prediction of drug combinations for cancer treatment proposed by Preuer et al. by applying principal component analysis to the dataset.
 
 For more information see: 
 
-[DeepSynergy: Predicting anti-cancer drug synergy with Deep Learning](https://guides.github.com/features/mastering-markdown/)
+[DeepSynergy: Predicting anti-cancer drug synergy with Deep Learning](https://www.researchgate.net/publication/321915391_DeepSynergy_Predicting_anti-cancer_drug_synergy_with_Deep_Learning)
 
 
 
